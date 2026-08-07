@@ -11,9 +11,11 @@ Um registro por fonte, no padrão do [Plano Diretor](../arquitetura/plano-direto
 
 | Campo | Valor |
 |---|---|
-| O que traz | Postos autorizados: CNPJ, razão social, bandeira, endereço, situação da autorização |
-| Cadência | Mensal (⚠ confirmar) |
-| Formato | CSV/planilha em dados abertos |
+| O que traz | Postos autorizados: `CODIGOISIMP`, autorização, razão social, CNPJ, endereço, UF/município, bandeira, datas |
+| URL vigente *(verificada em 2026-08-07)* | `https://www.gov.br/anp/pt-br/centrais-de-conteudo/dados-abertos/arquivos/arquivos-dados-cadastrais-dos-revendedores-varejistas-de-combustiveis-automotivos/dados-cadastrais-revendedores-varejistas-combustiveis-automoveis.csv` |
+| Formato | CSV UTF-8, separador `;`, CRLF. Colunas: `CODIGOISIMP;AUTORIZACAO;DATAPUBLICACAO;RAZAOSOCIAL;CNPJ;ENDERECO;COMPLEMENTO;BAIRRO;CEP;UF;MUNICIPIO;BANDEIRA;DATAVINCULACAO` |
+| Cadência | Atualização frequente (arquivo observado com data do próprio dia); coleta agendada. O HTTP **não envia `Last-Modified` nem `ETag`** |
+| Semântica temporal | **Fonte-retrato sem data de referência** — armadilha nº 7 do [modelo bitemporal](modelo-bitemporal.md): `validade` inicia na data da coleta; histórico constrói-se da primeira coleta em diante. `DATAPUBLICACAO` é a data da **autorização** (2000→hoje), fica no payload e não retroage a validade |
 | Acesso | Público |
 | Papel | **Semente do universo**: define o conjunto de `posto_id` candidatos; espinha dorsal cadastral |
 | Riscos | Endereço em texto livre; bandeira desatualizada; defasagem entre autorização e operação real |
@@ -60,9 +62,9 @@ Um registro por fonte, no padrão do [Plano Diretor](../arquitetura/plano-direto
 | Campo | Valor |
 |---|---|
 | O que traz | `EMPRESAS`, `ESTABELECIMENTOS`, `SOCIOS` (QSA), situação, CNAE, endereço, telefone |
-| Cadência | **Mensal — dump completo** |
-| Formato | CSVs zipados, GBs; layout com histórico de mudanças ⚠ |
-| Acesso | Público |
+| Cadência | **Mensal — dump completo**; competências disponíveis de 2023-05 em diante (39 até 2026-07) |
+| Formato | ~37 arquivos ZIP/mês, ~7,1 GB por competência; layout com histórico de mudanças |
+| Acesso *(verificado em 2026-08-07)* | Público, via compartilhamento **Nextcloud** — descoberta por WebDAV `PROPFIND` em `https://arquivos.receitafederal.gov.br/public.php/webdav` (usuário = token público do share `YggdBLfdninEJX9`, senha vazia). As URLs antigas morreram: `dadosabertos.rfb.gov.br` não responde e `arquivos.receitafederal.gov.br/dados/cnpj/…` retorna 404 |
 | Papel | Grafo societário (T1–T4); rotatividade; sucessão de fachada |
 | Riscos | **É retrato do presente** — sócio que saiu desaparece do dump seguinte; **CPF mascarado** (`***XXXXXX**`); layout muda sem aviso |
 | Cuidados | **Arquivar todo mês, começando já** — mês não capturado é história perdida em caráter irreversível; T3 sempre probabilístico com score; diff mensal gera os eventos `MudancaSocietariaDetectada` |

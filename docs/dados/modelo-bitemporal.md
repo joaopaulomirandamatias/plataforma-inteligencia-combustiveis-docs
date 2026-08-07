@@ -14,6 +14,10 @@ As duas juntas respondem a pergunta que uma só não responde: *"o que sabíamos
 ## Padrão de esquema
 
 ```sql
+-- Pré-requisito: o EXCLUDE abaixo mistura operador de igualdade (btree)
+-- com sobreposição (GiST) no mesmo índice — sem esta extensão, não compila.
+CREATE EXTENSION IF NOT EXISTS btree_gist;
+
 CREATE TABLE fato_qualidade (
     fato_id      bigint GENERATED ALWAYS AS IDENTITY,
     posto_id     text        NOT NULL,   -- SEMPRE o canônico (ADR-003)
@@ -47,6 +51,8 @@ Não existe quinta. `UPDATE` de payload e `DELETE` são proibidos por ADR-001 (e
 
 A operação 2 é a única forma de "mudar" algo — e ela **preserva** a versão anterior consultável: quem perguntar "o que sabíamos ontem?" recebe o valor de ontem, errado como era.
 
+> **Mecanismo canônico da operação 2.** Com o `REVOKE UPDATE` do ADR-001, fechar a transação da versão antiga é fisicamente um `UPDATE` — que o papel de aplicação não pode executar. A resolução é uma **função `SECURITY DEFINER` do owner**, restrita ao par fechar+inserir na mesma transação: o privilégio mora no código auditado, não no papel. (Decisão do coordenador em 2026-08-07, a partir da tensão identificada na implementação F0-01; implementação em card próprio.)
+
 ## Consulta as-of
 
 ```sql
@@ -70,6 +76,8 @@ Regra de produto: **rota quente não consulta bitemporal cru** — lê snapshot 
 3. **Corte temporal de ML.** Feature calculada para prever em T usa `transacao @> T` — o que a base *sabia* em T — e não `validade`. Usar validade é vazamento sutil: incorpora correções feitas depois de T.
 4. **Timezone.** Fontes publicam em horário de Brasília sem offset; normalizar para UTC na ingestão, nunca na consulta.
 5. **Snapshot desatualizado ≠ bug.** Snapshot é versão com identidade; a ficha pública declara a versão que exibe. "Atual" é o snapshot mais recente, não `now()`.
+6. **`'infinity'` não é "sem limite" para todas as funções.** Com a convenção deste documento, `upper_inf(transacao)` devolve **false** — o extremo existe e é `infinity`. O predicado correto para "versão viva" é `upper(transacao) = 'infinity'` ou `transacao @> now()`. Já derrubou teste em implementação; vai derrubar o próximo que assumir `upper_inf`.
+7. **Fonte-retrato sem data de referência.** Fonte que publica o estado corrente sem declarar a que data o retrato se refere (ex.: cadastro de revendedores da ANP — sem `Last-Modified`/`ETag`) tem `validade` iniciada na **data da coleta**, a melhor aproximação disponível. Consequência assumida: o histórico dessa fonte começa na primeira coleta; as-of anterior devolve vazio — e isso é **verdade**, não defeito. Datas de sub-fatos do payload (ex.: `DATAPUBLICACAO` = data da autorização) **não retroagem** a validade do retrato: retroagir fabricaria história para atributos mutáveis (bandeira, endereço). Se o sub-fato importar como fato próprio ("autorização publicada em D"), ele vira tipo de fato separado com a validade dele. **Corolário para reprocessamento:** ao recarregar da zona bruta, a referência temporal vem do manifesto (data da coleta original), nunca do relógio corrente — reprocessar não é recoletar.
 
 ## Interação com a trilha de auditoria
 

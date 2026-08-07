@@ -14,3 +14,6 @@ Todo fato persiste com `tempo_validade` e `tempo_transacao`; escrita é sempre a
 ## Alternativas rejeitadas
 - **Unitemporal (só validade):** não responde "o que sabíamos quando publicamos" — perde a defesa jurídica.
 - **Event sourcing completo:** poder equivalente com custo operacional e curva de equipe muito maiores; bitemporal relacional entrega o mesmo requisito com SQL.
+
+## Errata editorial (2026-08-07)
+Os nomes `tempo_validade`/`tempo_transacao` usados neste ADR correspondem, no DDL e no restante da documentação, às colunas `validade` e `transacao` (ver `modelo-bitemporal.md`). Registro puramente editorial — a decisão permanece a aceita em 2026-08.
