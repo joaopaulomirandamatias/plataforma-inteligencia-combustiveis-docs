@@ -26,8 +26,10 @@ Um registro por fonte, no padrão do [Plano Diretor](../arquitetura/plano-direto
 | Campo | Valor |
 |---|---|
 | O que traz | Amostras coletadas: posto, produto, ensaios, resultado (conforme/não conforme) |
-| Cadência | Mensal (⚠ confirmar janela de consolidação) |
-| Formato | CSV/planilha |
+| Cadência | Mensal, com **defasagem de ~2 meses** observada (em 2026-08, o mês mais recente publicado era 2026-06) |
+| URL observada *(2026-08)* | `…/dados-abertos/arquivos/pmqc/<AAAA>/pmqc_<AAAA>_<MM>.csv` |
+| Formato | CSV |
+| Identificador de amostra | **Não existe na fonte.** `amostra_id` é derivado (ponto + data + produto + coordenada GPS; desempate posicional nos raros casos sem coordenada — 10 em 62,6 mil em 2026-06). Republicação com linhas reordenadas pode trocar a identidade desses casos — risco registrado |
 | Acesso | Público |
 | Papel | **Gabarito de qualidade** (rótulo F2 da taxonomia); insumo do risco e da ficha pública |
 | Riscos | Amostragem **dirigida, não aleatória** — taxa de reprovação do PMQC ≠ prevalência real; identificação do posto por nome/endereço, não por chave estável |
@@ -38,7 +40,8 @@ Um registro por fonte, no padrão do [Plano Diretor](../arquitetura/plano-direto
 | Campo | Valor |
 |---|---|
 | O que traz | Preços coletados por posto, produto e semana |
-| Cadência | Semanal |
+| Cadência | Semanal. O calendário de semanas **não é publicado junto do dado** — convenção adotada: domingo–sábado (validada sem duplicata no grão em 2026-07); fonte oficial substituirá a convenção se existir |
+| Nomes de arquivo | **Irregulares na origem** — exemplos reais de 2026: `02-cados-abertos-…` (typo da própria ANP), arquivo sem extensão, ano embutido no nome. O conector **descobre** a URL na página oficial casando prefixo do mês e família — nunca monta o nome por regra |
 | Formato | CSV |
 | Acesso | Público |
 | Papel | Detecção de preço anômalo; série histórica por região |
