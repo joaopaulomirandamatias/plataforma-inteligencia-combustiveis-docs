@@ -29,8 +29,45 @@ tags:
   - name: precos
   - name: webhooks
   - name: datasets
+  - name: infra
+    description: Saúde e frescor — fora do versionamento /v1
 
 paths:
+  /saude:
+    get:
+      tags: [infra]
+      summary: Saúde do serviço e frescor dos dados
+      operationId: getSaude
+      security: []
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Saude" }
+
+  /postos:
+    get:
+      tags: [postos]
+      summary: Coleção de postos (ficha reduzida)
+      operationId: listarPostos
+      parameters:
+        - name: uf
+          in: query
+          schema: { type: string, minLength: 2, maxLength: 2 }
+        - name: municipio
+          in: query
+          schema: { type: string, description: nome do município (código IBGE quando houver geocodificação) }
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Ordenação estável com COLLATE "C" — cursor keyset
+            independente da collation do ambiente (armadilha 8 do modelo
+            bitemporal).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PaginaPostos" }
+
   /postos/{posto_id}:
     get:
       tags: [postos]
@@ -251,12 +288,12 @@ components:
       required: [posto_id, versao_snapshot]
       properties:
         posto_id: { type: string }
-        versao_snapshot: { type: string, description: versão as-of exibida — todo número é reproduzível }
+        versao_snapshot: { type: string, description: 'versão as-of exibida — todo número é reproduzível. Até existir snapshot materializado, formato provisório `cargas/F01:n,F02:n,F03:n`, resolvível contra ingestao.carga' }
         razao_social: { type: string }
         nome_fantasia: { type: string }
         bandeira: { type: string }
         endereco: { type: string }
-        municipio_ibge: { type: string }
+        municipio_ibge: { type: string, description: código IBGE — AUSENTE até a geocodificação (F1); o nome do município nunca é publicado neste campo }
         situacao_cadastral: { type: string }
         selo_transparencia: { type: boolean }
         fatos_recentes:
@@ -342,6 +379,33 @@ components:
       properties:
         itens: { type: array, items: { $ref: "#/components/schemas/PrecoSemanal" } }
         cobertura: { type: number }
+        proximo_cursor: { type: string }
+
+    Saude:
+      type: object
+      properties:
+        versao: { type: string, description: versão do código em execução }
+        fontes:
+          type: array
+          items:
+            type: object
+            properties:
+              fonte: { type: string }
+              ultima_carga_em: { type: string, format: date-time }
+              fatos: { type: integer }
+    PostoResumo:
+      type: object
+      properties:
+        posto_id: { type: string }
+        razao_social: { type: string }
+        nome_fantasia: { type: string }
+        bandeira: { type: string }
+        uf: { type: string }
+        municipio: { type: string }
+    PaginaPostos:
+      type: object
+      properties:
+        itens: { type: array, items: { $ref: "#/components/schemas/PostoResumo" } }
         proximo_cursor: { type: string }
 
     NovaAssinatura:
