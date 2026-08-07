@@ -477,7 +477,7 @@ Reconhecimento de quem vai bem em vez de pelourinho de quem vai mal: mesma infor
 | API | FastAPI |
 | Front | Next.js |
 | Agentes e NLP | Claude |
-| Infra | Docker + CI |
+| Infra | PostgreSQL gerenciado (Railway) como ambiente de referência; Docker Compose como caminho local opcional; CI |
 
 ### Princípios não negociáveis
 
