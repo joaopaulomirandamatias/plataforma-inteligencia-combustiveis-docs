@@ -1,0 +1,372 @@
+openapi: "3.1.0"
+info:
+  title: Plataforma de Inteligência de Combustíveis — API
+  version: 1.0.0-draft
+  description: |
+    Contrato público (Published Language) da plataforma. Regras transversais
+    no guia de consumo (guia-de-consumo.md):
+    - Consulta temporal: todo recurso histórico aceita `as_of`.
+    - Paginação: cursor keyset opaco; offset não existe.
+    - Erros: RFC 9457 (Problem Details).
+    - Score e ranking exigem papel de órgão (ADR-005) — campos sensíveis são
+      mascarados pelo gateway conforme papel+escopo, nunca pelo cliente.
+  contact:
+    name: Documentação
+    url: https://github.com/joaopaulomirandamatias/plataforma-inteligencia-combustiveis-docs
+
+servers:
+  - url: https://api.example.invalid/v1
+    description: placeholder — definido na implantação
+
+security:
+  - oidc: []
+  - apiKey: []
+
+tags:
+  - name: postos
+  - name: rankings
+    description: Restrito a papel de órgão com escopo
+  - name: precos
+  - name: webhooks
+  - name: datasets
+
+paths:
+  /postos/{posto_id}:
+    get:
+      tags: [postos]
+      summary: Ficha do posto (campos conforme papel)
+      operationId: getPosto
+      parameters:
+        - $ref: "#/components/parameters/PostoId"
+        - $ref: "#/components/parameters/AsOf"
+      responses:
+        "200":
+          description: Ficha as-of; visão pública contém apenas fatos com fonte.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Posto" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /postos/{posto_id}/historico:
+    get:
+      tags: [postos]
+      summary: Linha do tempo consolidada de fatos
+      operationId: getHistorico
+      parameters:
+        - $ref: "#/components/parameters/PostoId"
+        - $ref: "#/components/parameters/AsOf"
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Página de fatos datados com fonte e localizador.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PaginaHistorico" }
+
+  /postos/{posto_id}/grupo:
+    get:
+      tags: [postos]
+      summary: Vínculo societário aparente
+      description: Requer papel de órgão. Pessoas físicas aparecem apenas
+        como `pessoa_id` + nome, jamais CPF; arestas carregam nível T1–T4
+        e confiança.
+      operationId: getGrupo
+      x-required-role: orgao
+      parameters:
+        - $ref: "#/components/parameters/PostoId"
+        - $ref: "#/components/parameters/AsOf"
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GrupoSocietario" }
+        "403": { $ref: "#/components/responses/Problem" }
+
+  /rankings/fiscalizacao:
+    get:
+      tags: [rankings]
+      summary: Ranking de priorização de fiscalização
+      operationId: getRanking
+      x-required-role: orgao
+      parameters:
+        - name: uf
+          in: query
+          required: true
+          schema: { type: string, minLength: 2, maxLength: 2 }
+        - name: produto
+          in: query
+          schema: { type: string }
+        - $ref: "#/components/parameters/AsOf"
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Escopo ABAC aplicado — a UF pedida precisa pertencer
+            ao escopo do token.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PaginaRanking" }
+        "403": { $ref: "#/components/responses/Problem" }
+
+  /precos:
+    get:
+      tags: [precos]
+      summary: Série de preços SLP
+      operationId: getPrecos
+      parameters:
+        - name: municipio
+          in: query
+          schema: { type: string, description: código IBGE }
+        - name: semana
+          in: query
+          schema: { type: string, description: "AAAA-Www (semana ANP)" }
+        - name: produto
+          in: query
+          schema: { type: string }
+        - $ref: "#/components/parameters/Cursor"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Toda página inclui `cobertura` da semana — ausência
+            de posto é falta de coleta, nunca preço zero.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PaginaPrecos" }
+
+  /webhooks/assinaturas:
+    post:
+      tags: [webhooks]
+      summary: Registrar endpoint assinante
+      operationId: criarAssinatura
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NovaAssinatura" }
+      responses:
+        "201":
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Assinatura" }
+        "409": { $ref: "#/components/responses/Problem" }
+    get:
+      tags: [webhooks]
+      summary: Listar assinaturas do cliente
+      operationId: listarAssinaturas
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Assinatura" }
+
+  /webhooks/assinaturas/{assinatura_id}:
+    delete:
+      tags: [webhooks]
+      summary: Cancelar assinatura
+      operationId: removerAssinatura
+      parameters:
+        - name: assinatura_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "204": { description: Cancelada. }
+
+  /datasets:
+    get:
+      tags: [datasets]
+      summary: Datasets abertos versionados
+      operationId: listarDatasets
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Dataset" }
+
+components:
+  securitySchemes:
+    oidc:
+      type: openIdConnect
+      openIdConnectUrl: https://auth.example.invalid/realms/plataforma/.well-known/openid-configuration
+    apiKey:
+      type: apiKey
+      in: header
+      name: X-Api-Key
+      description: Somente rotas públicas e datasets.
+
+  parameters:
+    PostoId:
+      name: posto_id
+      in: path
+      required: true
+      schema: { type: string }
+      description: Identificador canônico (ADR-003).
+    AsOf:
+      name: as_of
+      in: query
+      schema: { type: string, format: date-time }
+      description: Consulta as-of (validade). Omitido = snapshot corrente.
+    Cursor:
+      name: cursor
+      in: query
+      schema: { type: string }
+      description: Cursor keyset opaco da página anterior.
+    Limit:
+      name: limit
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema: { type: string, format: uuid }
+      description: Obrigatória em todo POST com efeito.
+
+  responses:
+    Problem:
+      description: Erro no formato RFC 9457.
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+
+  schemas:
+    Problem:
+      type: object
+      properties:
+        type: { type: string, format: uri }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        codigo: { type: string, description: catálogo de códigos de domínio, versionado junto deste contrato }
+
+    Posto:
+      type: object
+      required: [posto_id, versao_snapshot]
+      properties:
+        posto_id: { type: string }
+        versao_snapshot: { type: string, description: versão as-of exibida — todo número é reproduzível }
+        razao_social: { type: string }
+        nome_fantasia: { type: string }
+        bandeira: { type: string }
+        endereco: { type: string }
+        municipio_ibge: { type: string }
+        situacao_cadastral: { type: string }
+        selo_transparencia: { type: boolean }
+        fatos_recentes:
+          type: array
+          items: { $ref: "#/components/schemas/Fato" }
+        contraditorio:
+          type: array
+          description: Manifestações do posto sobre fatos exibidos.
+          items:
+            type: object
+            properties:
+              fato_ref: { type: string }
+              manifestacao: { type: string }
+              data: { type: string, format: date }
+
+    Fato:
+      type: object
+      required: [tipo, data_validade, fonte, localizador]
+      properties:
+        tipo: { type: string, enum: [pmqc, autuacao, aferição, cadastro, preco] }
+        data_validade: { type: string, format: date }
+        descricao: { type: string, description: "factual, datada — política de linguagem aplicada na origem" }
+        fonte: { type: string }
+        localizador: { type: string, description: linhagem até a origem }
+
+    GrupoSocietario:
+      type: object
+      properties:
+        grupo_id: { type: string }
+        postos:
+          type: array
+          items: { type: string }
+        arestas:
+          type: array
+          items:
+            type: object
+            required: [origem, destino, nivel, confianca]
+            properties:
+              origem: { type: string }
+              destino: { type: string }
+              nivel: { type: string, enum: [T1, T2, T3, T4] }
+              confianca: { type: number, minimum: 0, maximum: 1 }
+              vigencia_inicio: { type: string, format: date }
+              vigencia_fim: { type: string, format: date }
+
+    ItemRanking:
+      type: object
+      required: [posto_id, posicao, score, cobertura, razoes]
+      properties:
+        posto_id: { type: string }
+        posicao: { type: integer }
+        score: { type: number }
+        intervalo: { type: array, items: { type: number }, minItems: 2, maxItems: 2 }
+        cobertura: { type: number, description: fração de dado disponível — score sem cobertura não é emitido }
+        razoes:
+          type: array
+          items:
+            type: object
+            properties:
+              feature: { type: string }
+              contribuicao: { type: number }
+
+    PrecoSemanal:
+      type: object
+      properties:
+        posto_id: { type: string }
+        semana: { type: string }
+        produto: { type: string }
+        preco: { type: number }
+
+    PaginaHistorico:
+      type: object
+      properties:
+        itens: { type: array, items: { $ref: "#/components/schemas/Fato" } }
+        proximo_cursor: { type: string }
+    PaginaRanking:
+      type: object
+      properties:
+        itens: { type: array, items: { $ref: "#/components/schemas/ItemRanking" } }
+        proximo_cursor: { type: string }
+    PaginaPrecos:
+      type: object
+      properties:
+        itens: { type: array, items: { $ref: "#/components/schemas/PrecoSemanal" } }
+        cobertura: { type: number }
+        proximo_cursor: { type: string }
+
+    NovaAssinatura:
+      type: object
+      required: [url, eventos]
+      properties:
+        url: { type: string, format: uri }
+        eventos:
+          type: array
+          description: Subconjunto assinável do catálogo — ver webhooks.md.
+          items: { type: string, enum: [caso.publicado, snapshot.publicado, ato-normativo.publicado] }
+    Assinatura:
+      allOf:
+        - $ref: "#/components/schemas/NovaAssinatura"
+        - type: object
+          properties:
+            assinatura_id: { type: string }
+            segredo_hmac_criado_em: { type: string, format: date-time, description: o segredo é exibido uma única vez na criação }
+            ativa: { type: boolean }
+
+    Dataset:
+      type: object
+      properties:
+        nome: { type: string }
+        versao: { type: string }
+        url: { type: string, format: uri }
+        licenca: { type: string }
+        gerado_em: { type: string, format: date-time }
