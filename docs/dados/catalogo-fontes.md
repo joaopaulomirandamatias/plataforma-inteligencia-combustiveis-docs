@@ -5,6 +5,14 @@ Um registro por fonte, no padrão do [Plano Diretor](../arquitetura/plano-direto
 > [!warning] Verificação pendente antes da F0
 > URLs, layouts e granularidade marcados com ⚠ precisam de confirmação na fonte oficial antes de escrever o conector — endereços de publicação de dado público brasileiro mudam sem aviso e sem redirect.
 
+## Política de divergência de esquema (todos os conectores tabulares)
+
+Decisão da F0-01, arbitrada de novo na verificação da F0-02: **tolerante a coluna nova, intolerante a coluna que some.**
+
+- Coluna **extra** não declarada: ignorada e **reportada com alerta** (`colunas_novas`) — fonte pública acrescentar campo é rotina e não pode custar a janela de coleta.
+- Coluna **esperada ausente**: quarentena — nada entra na base.
+- O contrato de cabeçalho declara **todas** as colunas que o parser lê: coluna lida sem contrato é defeito (sumiria em silêncio como NULL em vez de ir à quarentena).
+
 ---
 
 ## F01 — ANP · Cadastro de revendedores
