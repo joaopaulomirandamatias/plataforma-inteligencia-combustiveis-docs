@@ -2,7 +2,7 @@
 
 Este backlog transforma a especificação de [`dados/entity-resolution.md`](dados/entity-resolution.md) em entregas pequenas, verificáveis e reversíveis. A regra de custo é assimétrica: **deixar de ligar dois registros é recuperável; ligar registros de postos diferentes propaga um histórico errado**.
 
-## F1-01 — fila de revisão humana imutável
+## F1-01 — fila de revisão humana imutável ✅
 
 **Objetivo:** criar o primeiro artefato executável da F1 sem mudar nenhuma identidade vigente. Pares ambíguos podem ser registrados, revisados e usados depois como rótulo de treino, mas uma decisão desta etapa **não remapeia `posto_chave_fonte`**.
 
@@ -28,11 +28,12 @@ As duas tabelas são **append-only** para o papel de escrita da aplicação: `IN
 
 ### API interna de domínio
 
-O backend deve oferecer funções para:
+O backend oferece funções para:
 
 - canonicalizar um par independentemente da ordem recebida;
 - enfileirar de forma idempotente o mesmo par/modelo;
 - registrar uma decisão exatamente uma vez;
+- listar a fila pendente por ordem de chegada;
 - recusar score fora de `[0,1]`, par consigo mesmo, evidência que não seja objeto, decisão desconhecida e justificativa vazia.
 
 ### Fora do escopo deste card
@@ -47,15 +48,39 @@ O backend deve oferecer funções para:
 
 ### Critérios de aceite
 
-- [ ] migração aditiva e idempotente;
-- [ ] par A↔B e B↔A produzem a mesma identidade de candidato;
-- [ ] duplicata do mesmo par + versão retorna o candidato existente;
-- [ ] decisão é única e append-only;
-- [ ] decisão `aceitar` não altera `posto_chave_fonte`;
-- [ ] papel de escrita não consegue `UPDATE`/`DELETE` nas tabelas novas;
-- [ ] suíte padrão e lint verdes no CI;
-- [ ] migração aplicada em produção sem regressão de `/saude`.
+- [x] migração aditiva e idempotente;
+- [x] par A↔B e B↔A produzem a mesma identidade de candidato;
+- [x] duplicata do mesmo par + versão retorna o candidato existente;
+- [x] decisão é única e append-only;
+- [x] decisão `aceitar` não altera `posto_chave_fonte`;
+- [x] papel de escrita não consegue `UPDATE`/`DELETE` nas tabelas novas;
+- [x] suíte padrão e lint verdes no CI;
+- [x] migração aplicada em produção sem regressão de `/saude`.
+
+**Evidência de fechamento (2026-08-08):** migração `010_fila_revisao_identidade.sql`; módulo `pic.resolucao_identidade`; suíte `test_fila_revisao_identidade.py`; GitHub Actions backend verde com PostgreSQL 16 e contrato OpenAPI; Railway com 10 migrações aplicadas e healthcheck `/saude` retornando 200.
+
+## F1-02 — representação normalizada por fonte
+
+**Objetivo:** produzir campos comparáveis para blocking/similaridade sem substituir nem corrigir o dado de origem. O original continua na zona bruta/fato; a normalização é uma projeção versionada e reproduzível.
+
+### Entrega mínima
+
+- normalizadores puros para CNPJ, CEP, UF, texto empresarial e endereço;
+- representação de identidade com `fonte`, `chave_fonte`, versão do normalizador e campos normalizados;
+- nenhuma inferência de que dois registros são o mesmo posto;
+- saída determinística: mesma entrada + mesma versão = mesmos campos;
+- teste explícito para acentos, pontuação, sufixos societários e valores ausentes;
+- sem geocodificação neste card: coordenada entra quando GEO-01 existir.
+
+### Critérios de aceite
+
+- [ ] regras de normalização documentadas e versionadas;
+- [ ] funções puras e determinísticas;
+- [ ] original nunca é sobrescrito;
+- [ ] CNPJ inválido não é transformado em identificador confiável;
+- [ ] testes de casos difíceis verdes no CI;
+- [ ] nenhum efeito sobre API pública ou identidade vigente.
 
 ## Próximos cards
 
-F1-02 normalização e representação de registros por fonte → F1-03 blocking mensurável → F1-04 vetor de similaridade e baseline Fellegi–Sunter → F1-05 calibração dos dois limiares → F1-06 cluster versionado + operação de separação → F1-07 golden record com proveniência campo a campo → F1-08 amostra rotulada e medição formal de precisão/recall.
+F1-03 blocking mensurável → F1-04 vetor de similaridade e baseline Fellegi–Sunter → F1-05 calibração dos dois limiares → F1-06 cluster versionado + operação de separação → F1-07 golden record com proveniência campo a campo → F1-08 amostra rotulada e medição formal de precisão/recall.
