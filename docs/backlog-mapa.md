@@ -7,7 +7,7 @@ Ideia do usuário (2026-08-08): a ficha pública deve ter um mapa mostrando os p
 O mapa precisa de **coordenadas (lat/long)**; o cadastro ANP (F01) traz **endereço em texto livre**, sem geocodificação. A ordem obrigatória:
 
 1. **Geocodificação (dados/backend) — pré-requisito.** Converter os ~45.653 endereços em lat/long. Opções: Nominatim/OSM (gratuito, rate-limited, exige respeitar política de uso), serviço pago (Google/Mapbox — custo por chamada), ou base do IBGE/CEP. Cada endereço geocodificado é um FATO com fonte e data (bitemporal, como tudo) — geocodificação erra, e reprocessar precisa ser possível.
-2. **Armazenamento geoespacial.** PostGIS (já previsto no plano diretor; NÃO está na imagem atual do Railway — exige troca de imagem, ver nota de infra). Coluna `geometry(Point,4326)` + índice GiST.
+2. **Armazenamento geoespacial — descoberta de infra (2026-08-08): PostGIS NÃO está na imagem do Railway, MAS `cube` e `earthdistance` ESTÃO.** Isso muda o desenho: o mapa v1 **não precisa de PostGIS nem de troca de imagem**. Duas colunas `latitude`/`longitude` (double) + índice; **bounding-box** (viewport do mapa) resolve com `lat BETWEEN a AND b AND lon BETWEEN c AND d` (índice btree composto); **raio/proximidade** com `earthdistance` (`ll_to_earth`). PostGIS só se surgir necessidade de geometria complexa (polígonos, interseção) — não é o caso de pinos. Evita o dump/restore que a troca de imagem exigiria.
 3. **API.** Endpoint que devolve postos com coordenadas, com bounding-box/raio (não a lista inteira — mapa carrega por viewport). Cursor não serve aqui; é consulta espacial.
 4. **Frontend.** Biblioteca de mapa (Leaflet+OSM é leve e sem chave; MapLibre para vetorial). Clusterização de pinos (45k pontos não renderizam soltos). Popup do pino → ficha.
 
