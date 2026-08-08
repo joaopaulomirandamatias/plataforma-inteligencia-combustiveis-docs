@@ -29,13 +29,13 @@ tags:
   - name: precos
   - name: webhooks
   - name: datasets
-  - name: infra
+  - name: operacao
     description: Saúde e frescor — fora do versionamento /v1
 
 paths:
   /saude:
     get:
-      tags: [infra]
+      tags: [operacao]
       summary: Saúde do serviço e frescor dos dados
       operationId: getSaude
       security: []
@@ -285,17 +285,30 @@ components:
 
     Posto:
       type: object
-      required: [posto_id, versao_snapshot]
+      required: [posto_id, versao_snapshot, as_of]
       properties:
         posto_id: { type: string }
         versao_snapshot: { type: string, description: 'versão as-of exibida — todo número é reproduzível. Até existir snapshot materializado, formato provisório `cargas/F01:n,F02:n,F03:n`, resolvível contra ingestao.carga' }
+        as_of: { type: string, format: date-time }
         razao_social: { type: string }
-        nome_fantasia: { type: string }
+        cnpj: { type: string, description: chave pública da fonte F01 — dado público de PJ }
         bandeira: { type: string }
         endereco: { type: string }
+        municipio: { type: string, description: nome do município, como publicado pela fonte }
+        uf: { type: string }
+        cadastro_desde: { type: string, format: date-time, description: início da validade do cadastro vigente (armadilha 7 — data da coleta) }
+        cargas:
+          type: array
+          description: frescor por fonte no momento da resposta
+          items:
+            type: object
+            properties:
+              fonte: { type: string }
+              carga_id: { type: integer }
+              coletado_em: { type: string, format: date-time }
         municipio_ibge: { type: string, description: código IBGE — AUSENTE até a geocodificação (F1); o nome do município nunca é publicado neste campo }
-        situacao_cadastral: { type: string }
-        selo_transparencia: { type: boolean }
+        situacao_cadastral: { type: string, description: fase Entrega — ausente na API mínima }
+        selo_transparencia: { type: boolean, description: fase Entrega — ausente na API mínima }
         fatos_recentes:
           type: array
           items: { $ref: "#/components/schemas/Fato" }
@@ -383,30 +396,39 @@ components:
 
     Saude:
       type: object
+      required: [versao, estado, versao_snapshot, contagens, cargas]
       properties:
         versao: { type: string, description: versão do código em execução }
-        fontes:
+        estado: { type: string }
+        versao_snapshot: { type: string }
+        contagens:
+          type: object
+          additionalProperties: { type: integer }
+          description: fatos por conjunto (F01/F02/F03)
+        cargas:
           type: array
           items:
             type: object
             properties:
               fonte: { type: string }
-              ultima_carga_em: { type: string, format: date-time }
-              fatos: { type: integer }
+              carga_id: { type: integer }
+              coletado_em: { type: string, format: date-time }
+              cargas: { type: integer, description: total de cargas da fonte }
+              linhas_carregadas: { type: integer }
     PostoResumo:
       type: object
       properties:
         posto_id: { type: string }
         razao_social: { type: string }
-        nome_fantasia: { type: string }
         bandeira: { type: string }
-        uf: { type: string }
         municipio: { type: string }
+        uf: { type: string }
     PaginaPostos:
       type: object
       properties:
         itens: { type: array, items: { $ref: "#/components/schemas/PostoResumo" } }
-        proximo_cursor: { type: string }
+        proximo_cursor: { type: [string, "null"] }
+        as_of: { type: string, format: date-time }
 
     NovaAssinatura:
       type: object
