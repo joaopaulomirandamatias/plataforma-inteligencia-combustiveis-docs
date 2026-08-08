@@ -44,6 +44,15 @@ Permitidos com uso obrigatoriamente qualificado: `indício` (só com evidência 
 
 Veto sempre com motivo, registrado na trilha. **A política vale para humanos também:** texto de analista publicado pela plataforma passa pelo mesmo gate.
 
+## Entrada tolerante, saída restrita (decisão 2026-08-08)
+
+Duas fronteiras opostas, riscos opostos:
+
+- **Ingestão (entrada):** *tolerante a coluna nova* — fonte pública muda de esquema sozinha, e recusar um campo novo custaria a janela de coleta. Coluna extra é ignorada e reportada, nunca bloqueia (política do catálogo de fontes).
+- **Saída ao cliente (API pública, payload do frontend):** *lista de permissão* — campo a campo, explícito. Campo novo que a API passe a expor **não** atravessa para o navegador até alguém decidir conscientemente incluí-lo. O oposto da tolerância, e de propósito: na entrada, tolerância evita perder dado; na saída, tolerância vira vazamento.
+
+O caso que fixou a regra: em React Server Components, `key={fato.localizador}` promoveu um dado de auditoria (caminho de arquivo + hash) ao payload de hidratação — "não renderizado ≠ não enviado". A defesa robusta não foi remover o campo (um `delete` que a próxima adição fura), mas **separar o tipo da API do tipo da aplicação**: o campo sensível não existe no tipo que os componentes veem, então o compilador barra qualquer rota de vazamento — texto, atributo ou `key`. Corolário escrito no componente: **`key` se monta com dado que já está na tela** (fonte + data + índice), nunca com dado de auditoria.
+
 ## Casos de fronteira já decididos
 
 - **Imprensa pergunta "o posto X frauda?"** → resposta padrão: os fatos públicos com fonte e data, mais: "a plataforma não faz essa afirmação; verificação é competência do órgão".
