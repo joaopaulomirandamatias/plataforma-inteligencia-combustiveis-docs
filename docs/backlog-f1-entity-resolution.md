@@ -26,26 +26,6 @@ Duas tabelas aditivas no contexto `identidade`:
 
 As duas tabelas são **append-only** para o papel de escrita da aplicação: `INSERT` e `SELECT`, nunca `UPDATE`/`DELETE`. Corrigir uma decisão errada será um evento próprio em card posterior; a F1-01 não permite apagar história.
 
-### API interna de domínio
-
-O backend oferece funções para:
-
-- canonicalizar um par independentemente da ordem recebida;
-- enfileirar de forma idempotente o mesmo par/modelo;
-- registrar uma decisão exatamente uma vez;
-- listar a fila pendente por ordem de chegada;
-- recusar score fora de `[0,1]`, par consigo mesmo, evidência que não seja objeto, decisão desconhecida e justificativa vazia.
-
-### Fora do escopo deste card
-
-- cálculo de similaridade;
-- blocking;
-- geocodificação;
-- Fellegi–Sunter / gradient boosting;
-- alteração de `identidade.posto_chave_fonte`;
-- clusterização ou golden record;
-- qualquer endpoint público.
-
 ### Critérios de aceite
 
 - [x] migração aditiva e idempotente;
@@ -59,28 +39,66 @@ O backend oferece funções para:
 
 **Evidência de fechamento (2026-08-08):** migração `010_fila_revisao_identidade.sql`; módulo `pic.resolucao_identidade`; suíte `test_fila_revisao_identidade.py`; GitHub Actions backend verde com PostgreSQL 16 e contrato OpenAPI; Railway com 10 migrações aplicadas e healthcheck `/saude` retornando 200.
 
-## F1-02 — representação normalizada por fonte
+## F1-02 — representação normalizada por fonte ✅
 
 **Objetivo:** produzir campos comparáveis para blocking/similaridade sem substituir nem corrigir o dado de origem. O original continua na zona bruta/fato; a normalização é uma projeção versionada e reproduzível.
 
-### Entrega mínima
+### Entrega
 
 - normalizadores puros para CNPJ, CEP, UF, texto empresarial e endereço;
 - representação de identidade com `fonte`, `chave_fonte`, versão do normalizador e campos normalizados;
 - nenhuma inferência de que dois registros são o mesmo posto;
 - saída determinística: mesma entrada + mesma versão = mesmos campos;
 - teste explícito para acentos, pontuação, sufixos societários e valores ausentes;
-- sem geocodificação neste card: coordenada entra quando GEO-01 existir.
+- CNPJ só atravessa como identificador quando os dígitos verificadores são válidos;
+- sem geocodificação: coordenada entra quando GEO-01 existir.
 
 ### Critérios de aceite
 
-- [ ] regras de normalização documentadas e versionadas;
-- [ ] funções puras e determinísticas;
-- [ ] original nunca é sobrescrito;
-- [ ] CNPJ inválido não é transformado em identificador confiável;
-- [ ] testes de casos difíceis verdes no CI;
-- [ ] nenhum efeito sobre API pública ou identidade vigente.
+- [x] regras de normalização documentadas e versionadas;
+- [x] funções puras e determinísticas;
+- [x] original nunca é sobrescrito;
+- [x] CNPJ inválido não é transformado em identificador confiável;
+- [x] testes de casos difíceis verdes no CI;
+- [x] nenhum efeito sobre API pública ou identidade vigente.
+
+**Evidência de fechamento (2026-08-08):** módulo `pic.normalizacao_identidade`, versão `f1-02-v1`, e suíte `test_normalizacao_identidade.py`; CI completo verde.
+
+## F1-03 — blocking mensurável
+
+**Objetivo:** reduzir o universo de comparações antes de qualquer score, registrando por que cada par foi candidato e quanto trabalho foi eliminado. **Compartilhar bloco significa somente “vale comparar”, nunca “é o mesmo posto”.**
+
+### Blocos disponíveis sem geocodificação
+
+1. **CNPJ raiz** — oito primeiros dígitos de um CNPJ validado. É bloco, não evidência de ponto físico: matriz e filiais podem compartilhar raiz.
+2. **CEP + tipo de logradouro** — só quando CEP válido e o tipo do primeiro token do endereço está reconhecido.
+3. **Nome normalizado por tokens** — bloco textual conservador para recuperar casos sem identificador forte; não será chamado de “fonético” até existir algoritmo/validação próprios.
+
+O bloco geográfico da especificação (`geohash + vizinhas`) fica **indisponível e reportado como tal** até GEO-01 produzir coordenadas. A ausência não pode ser mascarada por um substituto inventado.
+
+### Saída e métricas obrigatórias
+
+- pares canônicos identificados por `(fonte, chave_fonte)`;
+- conjunto de motivos/blocos compartilhados por par;
+- total de registros;
+- total teórico de comparações entre fontes;
+- pares produzidos pelo blocking;
+- taxa de redução de comparações;
+- número de registros sem qualquer chave de bloco;
+- contagem de pares por família de bloco;
+- execução determinística e independente da ordem da entrada.
+
+### Critérios de aceite
+
+- [ ] nenhum par é classificado ou ligado nesta etapa;
+- [ ] A↔B aparece uma vez mesmo compartilhando vários blocos;
+- [ ] motivos do par são preservados e ordenados;
+- [ ] mesma entrada em ordem diferente produz a mesma saída/métricas;
+- [ ] CNPJ inválido nunca cria bloco CNPJ;
+- [ ] registros sem bloco são contabilizados, nunca descartados em silêncio;
+- [ ] geografia aparece como cobertura ausente, não como dado estimado;
+- [ ] suíte e lint verdes no CI.
 
 ## Próximos cards
 
-F1-03 blocking mensurável → F1-04 vetor de similaridade e baseline Fellegi–Sunter → F1-05 calibração dos dois limiares → F1-06 cluster versionado + operação de separação → F1-07 golden record com proveniência campo a campo → F1-08 amostra rotulada e medição formal de precisão/recall.
+F1-04 vetor de similaridade e baseline Fellegi–Sunter → F1-05 calibração dos dois limiares → F1-06 cluster versionado + operação de separação → F1-07 golden record com proveniência campo a campo → F1-08 amostra rotulada e medição formal de precisão/recall.
