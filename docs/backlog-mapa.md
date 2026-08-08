@@ -8,21 +8,19 @@ Ideia do usuário (2026-08-08): a ficha pública deve ter um mapa mostrando os p
 |---|---|---|
 | GEO-01 geocodificação | ✅ **engenharia em produção** | migração 017, cache imutável, fato bitemporal, `pic-geo`, provedor plugável e nenhuma chamada externa sem configuração explícita |
 | GEO-02 armazenamento/índices espaciais | ✅ **produção** | migração 018, `cube` + `earthdistance`, B-tree de viewport, GiST para raio e view factual; 387 testes + OpenAPI 8/8 |
-| GEO-03 API espacial | 🟡 **em implementação** | contrato `/postos/mapa` definido: bbox ou raio, limite duro, `as_of` e evidência com provedor/versão |
-| WEB-02 mapa | ⏳ pendente | mapa client-side, clusterização e carregamento por viewport |
+| GEO-03 API espacial | ✅ **produção** | `/v1/postos/mapa`: bbox ou raio, `as_of`, limite duro, truncamento e proveniência; 402 testes + OpenAPI 9/9 |
+| WEB-02 mapa | 🟡 **em implementação** | mapa client-side, carregamento por viewport, estado vazio e sem serializar universo no RSC |
 
-**Importante:** GEO-01 em produção significa que a infraestrutura para geocodificar existe. O conjunto real de coordenadas continua vazio/não produzido enquanto não for escolhido explicitamente um provedor de lote e um protocolo de execução. Nenhuma variável `PIC_GEO_*` está configurada nos serviços produtivos no fechamento do GEO-02.
+**Importante:** GEO-01 em produção significa que a infraestrutura para geocodificar existe. O conjunto real de coordenadas continua vazio/não produzido enquanto não for escolhido explicitamente um provedor de lote e um protocolo de execução. Nenhuma variável `PIC_GEO_*` está configurada nos serviços produtivos no fechamento do GEO-03.
 
-## Por que é épico, não card
+## Sequência arquitetural
 
-O mapa precisa de **coordenadas (lat/long)**; o cadastro ANP (F01) traz **endereço em texto livre**, sem geocodificação. A ordem obrigatória:
+1. **GEO-01 — geocodificação auditável. ✅** Endereço F01 vira consulta determinística; respostas são cacheadas por provedor + versão + hash e vinculadas ao fato cadastral sem declarar a coordenada como verdade canônica. Resultado `nao_encontrado` também é preservado. O servidor público do Nominatim não é configurado como executor de lote.
+2. **GEO-02 — armazenamento geoespacial. ✅** `cube`/`earthdistance`, índices e view factual preparam bbox e raio sem duplicar lat/lon nem escolher ponto oficial.
+3. **GEO-03 — API. ✅** Endpoint devolve evidências geográficas por bounding-box/raio, nunca a lista inteira. O contrato canônico foi definido antes da implementação.
+4. **WEB-02 — frontend. 🟡** Mapa client-side deve buscar o endpoint espacial por viewport e exibir as evidências sem transformar o mapa em fonte de verdade.
 
-1. **GEO-01 — geocodificação auditável. ✅** Endereço F01 vira consulta determinística; respostas são cacheadas por provedor + versão + hash e vinculadas ao fato cadastral sem declarar a coordenada como verdade canônica. Resultado `nao_encontrado` também é preservado. O servidor público do Nominatim não é configurado como executor de lote; produção não possui endpoint GEO ativo até decisão explícita.
-2. **GEO-02 — armazenamento geoespacial. ✅** PostGIS não é necessário para pinos do mapa v1. A coordenada continua na resposta imutável do GEO-01; o fato mantém a associação bitemporal. `cube`/`earthdistance`, índices e uma view factual preparam bounding-box e raio sem duplicar lat/lon nem escolher ponto oficial.
-3. **GEO-03 — API. 🟡** Endpoint devolve evidências geográficas por bounding-box/raio, nunca a lista inteira. Cursor de lista tradicional não substitui consulta espacial por viewport. O contrato canônico foi definido antes da implementação.
-4. **WEB-02 — frontend.** Biblioteca de mapa + clusterização de pinos + popup que aponta para a ficha. A busca deve ocorrer no cliente por viewport para evitar serializar dezenas de milhares de pontos no payload RSC.
-
-## GEO-01 — o que foi entregue
+## GEO-01 — entregue
 
 - `ingestao.cache_geocodificacao`: cache imutável de resposta do provedor;
 - `fatos.fato_geocodificacao`: vínculo bitemporal entre o F01 e a resposta usada;
@@ -37,7 +35,7 @@ O mapa precisa de **coordenadas (lat/long)**; o cadastro ANP (F01) traz **endere
 - CLI `pic-geo`;
 - testes sem rede real;
 - validação oficial: **382 passed, 1 skipped, 2 deselected + OpenAPI 8/8**;
-- produção GEO-01: `main/deploy` `73ff7f4ac1918f324db14421536377f08bd81140`, migração 017 aplicada pelo startup e `/saude` HTTP 200.
+- produção GEO-01: `73ff7f4ac1918f324db14421536377f08bd81140`, migração 017 aplicada e `/saude` HTTP 200.
 
 ### Limite de GEO-01
 
@@ -45,14 +43,12 @@ GEO-01 **não geocodificou o cadastro real**. Isso é deliberado. Escolher/contr
 
 ## GEO-02 — entregue em produção
 
-GEO-02 foi validado em PostgreSQL 16 e promovido pelo fluxo oficial. Entregas:
-
 - `cube` e `earthdistance` no mesmo schema endurecido;
 - revogação explícita de `CREATE` no schema das extensões para papéis não confiáveis;
 - índice B-tree parcial `(latitude, longitude)` para viewport;
-- índice GiST parcial sobre `ll_to_earth(latitude, longitude)` para pré-filtro de raio;
-- `earth_box(...)` para reduzir candidatos e `earth_distance(...)` para o corte circular exato;
-- `fatos.vw_geocodificacao_ponto`, que expõe somente evidências com coordenadas e preserva provedor, versão, hashes e bitemporalidade;
+- índice GiST parcial sobre `ll_to_earth(latitude, longitude)` para raio;
+- `earth_box(...)` como pré-filtro e `earth_distance(...)` como corte circular exato;
+- `fatos.vw_geocodificacao_ponto` preservando provedor, versão, hashes e bitemporalidade;
 - nenhuma duplicação de latitude/longitude no fato;
 - nenhuma seleção de “coordenada oficial”.
 
@@ -64,46 +60,82 @@ Gate final da PR #18:
 - OpenAPI **8/8**;
 - lint verde.
 
-Produção:
+Produção GEO-02:
 
-- merge/main/deploy `c9fb84d684933224895ae5117efb6bd1b017c125`;
+- main/deploy `c9fb84d684933224895ae5117efb6bd1b017c125`;
 - migração `018_geoespacial.sql` aplicada pelo startup normal;
 - `pic-api` e `pic-worker` no mesmo SHA e `SUCCESS`;
 - `/saude` HTTP 200.
 
-## GEO-03 — contrato definido
+## GEO-03 — entregue em produção
 
-O contrato canônico agora prevê `GET /v1/postos/mapa` (em `openapi.yaml`, caminho `/postos/mapa` porque o `/v1` vive em `servers`). Regras:
+Contrato canônico: `GET /v1/postos/mapa` (no OpenAPI o caminho é `/postos/mapa`, pois `/v1` vive em `servers`).
 
-- exatamente um modo por requisição:
+### Regras
+
+- exatamente um modo:
   - bbox completo: `min_lat`, `min_lon`, `max_lat`, `max_lon`; ou
   - raio completo: `lat`, `lon`, `raio_m`;
-- mistura, ausência ou grupo incompleto é 422;
+- mistura, ausência ou grupo incompleto → 422 Problem Details;
 - `raio_m` máximo de 100 km;
-- `limit` máximo de 1.000 e padrão 500;
-- consulta temporal `as_of`;
-- filtros opcionais `provedor` e `versao_provedor`, sendo versão dependente de provedor;
-- resposta contém `truncado`; quando verdadeiro, o cliente deve reduzir viewport/raio, não tentar paginar todo o universo;
-- cada item é uma **evidência GEO-01**, com `evidencia_id`, provedor, versão, hash de resultado, fonte e localizador;
-- `distancia_m` só é preenchida no modo raio;
-- não existe seleção implícita de coordenada canônica.
+- `limit` máximo 1.000, padrão 500;
+- o banco busca `limit + 1` e devolve `truncado`, evitando `count(*)`;
+- consulta temporal `as_of` filtra simultaneamente validade/transação da evidência GEO e do F01 de origem;
+- filtros opcionais por `provedor` e `versao_provedor`;
+- bbox usa latitude/longitude indexáveis;
+- raio usa `earth_box` + `earth_distance`;
+- cada item é uma **evidência GEO-01**, com `evidencia_id`, provedor, versão, hash, fonte e localizador;
+- `distancia_m` existe apenas no modo raio;
+- não existe seleção implícita de coordenada canônica;
+- bbox v1 não cruza o antimeridiano (`min_lon < max_lon`), suficiente para o recorte brasileiro.
+
+### Gate oficial
+
+PR #19 / head validado `a423ed0196a1c6996769f5a49a3050ddb5833141`:
+
+- **402 passed, 1 skipped, 2 deselected**;
+- `tests/test_api_geo.py`: **14/14**;
+- contrato OpenAPI executável: **9/9**;
+- `MapaPostos` e cada `PontoMapa` validados por JSON Schema;
+- lint verde.
+
+Produção GEO-03:
+
+- main/deploy `700ea1e8655510410bdf2b0d17fd7def5f2a0941`;
+- CI de `main` verde, inclusive promoção automática;
+- deployments Railway `pic-api` e `pic-worker` no mesmo SHA e `SUCCESS`;
+- startup da API confirmou **18 migrações já aplicadas**;
+- `/saude` retornou HTTP 200 pelo healthcheck Railway;
+- GEO-03 não executa geocodificação nem gera custo externo.
+
+### Observação de validação HTTP externa
+
+O ambiente de ferramentas usado durante a implementação não conseguiu resolver diretamente o domínio público Railway para uma sonda manual adicional. Isso foi tratado como limitação da ferramenta, não como evidência de sucesso ou falha do endpoint. A evidência aceita para promoção foi o CI oficial + rollout Railway + healthcheck 200. Não foi registrado um resultado externo inventado.
+
+## WEB-02 — próximo card
+
+Diretrizes já fixadas:
+
+1. componente de mapa deve ser **client-side**;
+2. pontos são buscados diretamente em `/v1/postos/mapa` por viewport/raio;
+3. não serializar pontos no payload RSC;
+4. respeitar `truncado=true` pedindo zoom/viewport menor;
+5. exibir estado vazio de cobertura geográfica de forma explícita;
+6. popup deve separar fato, fonte e proveniência;
+7. mapa não pode transformar coordenada geocodificada em “posto ativo” ou “localização oficial”;
+8. nenhuma chamada de geocodificação é feita pelo navegador;
+9. dependência/provedor de mapa e tiles deve ser escolhido com política de uso e atribuição verificadas, não por conveniência.
 
 ## Cuidados herdados do projeto
 
 - **Qualidade da geocodificação é dado, não verdade:** endereço mal geocodificado põe o pino no lugar errado; a evidência precisa preservar origem e método.
-- **Política de linguagem no popup:** mesmo léxico, mesma regra — fato com fonte, nunca juízo.
-- **Cobertura declarada:** postos não geocodificados não somem do mapa em silêncio — contam como “sem localização”, não como “não existe”.
-- **Custo:** geocodificar dezenas de milhares de endereços pode consumir tempo ou dinheiro; a execução real deve ter orçamento e protocolo próprios.
-- **Sem PostGIS por padrão:** pinos, bbox e raio cabem no desenho `double precision` + `cube`/`earthdistance`; PostGIS só entra se surgirem polígonos/interseções/geometrias complexas.
-
-## Notas de arquitetura da borda web
-
-1. **O payload RSC é o problema central do mapa, não um detalhe.** Numa página de servidor (RSC), pontos enviados como props entram no payload serializado. O mapa deve tender a componente de cliente buscando o endpoint espacial diretamente por viewport.
-2. **A borda de dados (`lib/api.ts`) é allowlist.** Latitude/longitude só devem atravessar quando GEO-03/WEB-02 adicionarem explicitamente os campos permitidos. Isso evita ampliar o contrato público por acidente.
-3. **Mapa não é fonte de verdade de atividade.** Um ponto geocodificado significa “há evidência de localização derivada deste cadastro”, não “posto ativo agora” sem o filtro temporal/cadastral correspondente.
+- **Política de linguagem no popup:** fato com fonte, nunca juízo.
+- **Cobertura declarada:** postos não geocodificados não somem em silêncio — contam como “sem localização”, não como “não existe”.
+- **Custo:** a produção do dataset real deve ter orçamento e protocolo próprios.
+- **Sem PostGIS por padrão:** pinos, bbox e raio cabem no desenho atual; PostGIS só entra se surgirem geometrias complexas.
 
 ## Sequência atual
 
-`GEO-01 ✅` → `GEO-02 ✅` → `GEO-03 🟡` → `WEB-02`
+`GEO-01 ✅` → `GEO-02 ✅` → `GEO-03 ✅` → `WEB-02 🟡`
 
 Em paralelo, após a escolha de provedor, deve existir um protocolo separado para **produção e validação do dataset geocodificado real**, incluindo cobertura, amostra manual de qualidade, versionamento e reprocessamento.
