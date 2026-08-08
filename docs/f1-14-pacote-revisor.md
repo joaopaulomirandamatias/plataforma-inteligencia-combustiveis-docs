@@ -121,20 +121,22 @@ python -m pic.operacao_pacote_revisor_entity_resolution importar-rotulos ...
 
 ## Critérios de aceite
 
-- [ ] pacote individual é determinístico para mesma entrada/atribuição;
-- [ ] pacote contém somente itens atribuídos ao revisor;
-- [ ] pacote base precisa coincidir exatamente com os itens registrados do experimento;
-- [ ] pacote continua estruturalmente cego;
-- [ ] alteração do conteúdo sem atualizar o hash é detectada;
-- [ ] registro do pacote ocorre antes do primeiro rótulo;
-- [ ] mapa de itens é obrigatório e corresponde exatamente à atribuição;
-- [ ] SQL direto com hash/contagem sem mapa completo falha no `COMMIT`;
-- [ ] rótulo no modo F1-14 precisa citar o SHA registrado;
-- [ ] hash inexistente ou divergente falha alto;
-- [ ] tabelas novas são append-only para o papel da aplicação;
-- [ ] experimento legado sem F1-14 continua compatível sem backfill inventado;
-- [ ] lint, PostgreSQL 16, suíte completa e contrato OpenAPI ficam verdes no Railway CI Sandbox;
+- [x] pacote individual é determinístico para mesma entrada/atribuição;
+- [x] pacote contém somente itens atribuídos ao revisor;
+- [x] pacote base precisa coincidir exatamente com os itens registrados do experimento;
+- [x] pacote continua estruturalmente cego;
+- [x] alteração do conteúdo sem atualizar o hash é detectada;
+- [x] registro do pacote ocorre antes do primeiro rótulo;
+- [x] mapa de itens é obrigatório e corresponde exatamente à atribuição;
+- [x] SQL direto com hash/contagem sem mapa completo falha no `COMMIT`;
+- [x] rótulo no modo F1-14 precisa citar o SHA registrado;
+- [x] hash inexistente ou divergente falha alto;
+- [x] tabelas novas são append-only para o papel da aplicação;
+- [x] experimento legado sem F1-14 continua compatível sem backfill inventado;
+- [x] lint, PostgreSQL 16, suíte completa e contrato OpenAPI ficam verdes no Railway CI Sandbox;
 - [ ] merge/promoção permanecem condicionados ao GitHub Actions oficial.
+
+**Evidência técnica (2026-08-08):** PR #10, head de produto `08e098d6a23012edc43f7ef8f22f54ecbda77da8`; branch de CI reconstruída diretamente desse head com apenas runner/marker; deployment Railway CI Sandbox `966a7853-0476-46d5-96ad-90198ba8236d`; `ruff` aprovado; **359 passed, 1 skipped, 2 deselected**; testes F1-14 7/7; invariantes da migração 015 5/5; OpenAPI 8/8; `CI_RESULT=PASS`.
 
 ## O que F1-14 não prova
 
