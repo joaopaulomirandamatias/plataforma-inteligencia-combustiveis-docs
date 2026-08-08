@@ -32,7 +32,10 @@ posto_id_origem
 validade_inicio
 validade_fim
 transacao_inicio
+transacao_fim
 ```
+
+Os dois finais podem ser abertos (`None` na representação Python, `infinity`/limite aberto no armazenamento). Eles precisam existir conceitualmente: somente `transacao_inicio` não é suficiente para consulta as-of depois que uma versão de fato foi corrigida e teve seu tempo de transação encerrado.
 
 `valor = ausente` não participa da seleção. Valor vazio não ganha precedência sobre valor preenchido.
 
@@ -111,6 +114,7 @@ CampoGolden
   validade_inicio
   validade_fim
   transacao_inicio
+  transacao_fim
   politica_versao
   regra_aplicada
   alternativas[]
@@ -143,6 +147,7 @@ GoldenRecord
 4. **Fonte original permanece consultável.** O golden record nunca substitui `fatos.*`.
 5. **Política muda por versão.** Alterar precedência cria outra versão de política; resultados históricos podem ser reconstruídos com a versão anterior.
 6. **Corte temporal é obrigatório.** O mesmo cluster pode produzir golden records diferentes para tempos do mundo/transação diferentes.
+7. **Versão corrigida deixa de concorrer.** Candidato cujo `transacao_fim <= transacao_em` não participa do golden record naquele corte de conhecimento.
 
 ---
 
@@ -152,15 +157,17 @@ GoldenRecord
 
 - dataclasses de candidato, política e saída;
 - seleção determinística por campo;
+- filtro bitemporal explícito nos candidatos;
 - alternativas preservadas;
 - cobertura ausente explícita;
-- testes sem banco para precedência, recência, empate e ausência.
+- testes sem banco para precedência, recência, empate, correção temporal e ausência.
 
 ### F1-07b — adaptador PostgreSQL
 
 - recebe `cluster_id`, `validade_em`, `transacao_em`;
 - usa F1-06 para obter membros do snapshot correto;
-- consulta fatos permitidos por campo;
+- consulta fatos permitidos por campo já respeitando validade e transação;
+- projeta `infinity` antes do driver, como nas outras bordas bitemporais do projeto;
 - transforma linhas em candidatos sem perder `fonte/localizador`;
 - chama o motor puro;
 - nenhum SQL de `UPDATE`/`DELETE`.
@@ -184,6 +191,7 @@ Só depois do contrato interno ficar estável:
 - [ ] troca da ordem da entrada não muda o resultado;
 - [ ] versão da política aparece em todos os resultados;
 - [ ] mudança de política não altera fatos anteriores;
+- [ ] fato corrigido deixa de concorrer depois de `transacao_fim`;
 - [ ] consulta usa somente membros válidos do snapshot F1-06 no corte solicitado;
 - [ ] F05 não participa como dado estruturado antes de seu parser existir;
 - [ ] testes e lint verdes antes de promoção para `deploy`.
