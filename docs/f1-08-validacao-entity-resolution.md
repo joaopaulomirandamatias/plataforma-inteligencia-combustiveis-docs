@@ -126,6 +126,12 @@ Divergências passam por adjudicação documentada. Registrar:
 
 Kappa não substitui inspeção das discordâncias; ele é diagnóstico de consistência do codebook.
 
+### Invariável de adjudicação
+
+A adjudicação só é válida quando existem **pelo menos dois rótulos humanos e pelo menos dois valores distintos** para o item. Essa regra não fica apenas na camada Python: a migração F1-08c adiciona uma validação no PostgreSQL para impedir INSERT direto que tente contornar a divergência humana prévia.
+
+Os rótulos originais permanecem append-only. Adjudicar cria outro registro; nunca executa UPDATE ou DELETE sobre a opinião dos revisores.
+
 ---
 
 ## Separação treino / calibração / teste
@@ -141,6 +147,8 @@ Papéis:
 - `teste`: uma única avaliação final congelada.
 
 Se o teste final for usado para ajustar o modelo, ele deixa de ser teste e uma nova amostra final precisa ser criada.
+
+O motor F1-08d reforça essa separação em runtime: ele aceita somente registros marcados como `teste`; item de `treino` ou `calibracao` faz a avaliação falhar explicitamente.
 
 ---
 
@@ -160,6 +168,18 @@ A alegação “precisão ≥ 0,98” deve ser distinguida entre:
 2. limite inferior do intervalo de confiança ≥ 0,98.
 
 A segunda é evidência substancialmente mais forte e exige amostra maior. O relatório deve dizer explicitamente qual critério foi satisfeito.
+
+### Regra implementada na v1
+
+A F1-08d usa **Wilson 95%** para precisão e recall e adota o critério conservador como gate de alegação:
+
+```text
+meta_precisao_sustentada = limite_inferior_IC95(precision) >= 0,98
+meta_recall_sustentada   = limite_inferior_IC95(recall)    >= 0,95
+meta_modelo_atendida     = ambas verdadeiras
+```
+
+Portanto, uma amostra pequena com precisão pontual `1,00` pode corretamente resultar em **meta não sustentada** se o intervalo ainda for largo.
 
 ---
 
@@ -191,7 +211,7 @@ O relatório deve publicar a matriz de confusão em números absolutos junto das
 
 ## Artefatos executáveis da F1-08
 
-### F1-08a — codebook e formato de amostra
+### F1-08a — codebook e formato de amostra ✅ engenharia validada
 
 - schema versionado do item de revisão;
 - rótulos permitidos;
@@ -199,7 +219,9 @@ O relatório deve publicar a matriz de confusão em números absolutos junto das
 - campos explicitamente ocultos para blindagem;
 - hash do manifesto de dados.
 
-### F1-08b — gerador de amostra
+Implementação: `pic.revisao_entity_resolution`, com IDs opacos e JSON determinístico. CI completo ficou verde antes do bloqueio de billing do Actions.
+
+### F1-08b — gerador de amostra 🧪 implementado / CI bloqueado
 
 - seleção determinística dado `seed` + manifesto;
 - estratificação declarada;
@@ -207,20 +229,43 @@ O relatório deve publicar a matriz de confusão em números absolutos junto das
 - nunca inclui score/destino no pacote do revisor;
 - exporta lista separada para reconciliação posterior com o experimento.
 
-### F1-08c — importação/adjudicação
+Implementação: `pic.amostragem_entity_resolution`. A seleção usa ranking SHA-256 de `seed + item_id`, quotas exatas e falha quando um estrato não possui população suficiente. Validação local isolada dos módulos puros passou; falta o CI canônico após regularização do billing.
+
+### F1-08c — importação/adjudicação 🧪 implementado / CI bloqueado
 
 - dois revisores não sobrescrevem um ao outro;
 - adjudicação é novo evento, não UPDATE do rótulo original;
-- trilha de quem/quando/codebook-versão.
+- experimento, item, rótulo e adjudicação são append-only;
+- migração `012_rotulos_entity_resolution.sql`;
+- PostgreSQL também impede adjudicação sem divergência humana prévia.
 
-### F1-08d — relatório de avaliação
+A migração não deve ser considerada de produção antes de CI verde + promoção automática para `deploy` + confirmação Railway.
+
+### F1-08d — relatório de avaliação 🧪 PR #1 / CI bloqueado
 
 - matriz de confusão;
 - métricas globais e por estrato;
-- intervalos de confiança;
-- perda do blocking;
-- thresholds e versão do modelo usados;
-- critérios de aceite satisfeitos ou não satisfeitos.
+- política operacional em três vias;
+- `INDETERMINADO` excluído das classes e reportado como cobertura não resolvida;
+- Wilson 95% para precisão/recall;
+- holdout aceita apenas partição `teste`;
+- limiares precisam ser finitos e já estar congelados;
+- critérios de aceite satisfeitos ou não satisfeitos sem recalibrar o teste.
+
+Implementação isolada em `work/f1-08d-relatorio` / PR #1. Testes puros locais passaram; merge continua bloqueado até GitHub Actions voltar a executar jobs.
+
+---
+
+## Bloqueio operacional atual
+
+O GitHub Actions informa que os jobs não iniciam porque **pagamento recente falhou ou o spending limit do Actions precisa ser aumentado**. Os runs terminam antes de receber runner e não executam lint, PostgreSQL ou pytest.
+
+A correção depende de **GitHub → Settings → Billing & plans**. Até lá:
+
+- `deploy` não é movida manualmente;
+- Railway não volta a apontar para `main`;
+- migração 012 não é aplicada manualmente em produção;
+- PR #1 não é mergeada sem CI verde.
 
 ---
 
@@ -229,11 +274,13 @@ O relatório deve publicar a matriz de confusão em números absolutos junto das
 A plataforma **não** declara precisão ≥ 0,98 / recall ≥ 0,95 enquanto todos os itens abaixo não existirem:
 
 - [ ] amostra de teste congelada e independente de treino/calibração;
-- [ ] codebook versionado;
-- [ ] revisão humana documentada;
+- [x] codebook versionado em engenharia;
+- [ ] revisão humana real documentada;
 - [ ] blocking auditado fora do próprio conjunto de candidatos;
-- [ ] thresholds congelados antes de abrir o teste final;
-- [ ] matriz de confusão e métricas por estrato calculadas;
-- [ ] incerteza estatística reportada;
-- [ ] manifesto/hashes permitem reproduzir o experimento;
+- [ ] thresholds empíricos congelados antes de abrir o teste final;
+- [ ] matriz de confusão e métricas por estrato calculadas sobre amostra real;
+- [ ] incerteza estatística reportada sobre amostra real;
+- [ ] manifesto/hashes permitem reproduzir o experimento real;
 - [ ] resultado final satisfaz ou rejeita explicitamente as metas, sem ajustar o critério depois de ver os dados.
+
+**Importante:** a engenharia para produzir esses artefatos pode estar concluída antes da evidência empírica. Isso não autoriza transformar testes sintéticos ou locais em alegação científica de desempenho.
