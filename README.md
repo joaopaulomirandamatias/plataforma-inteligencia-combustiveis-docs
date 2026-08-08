@@ -2,8 +2,8 @@
 
 Documentação de arquitetura e engenharia da **Plataforma de Inteligência de Combustíveis**: um sistema que integra, reconcilia e versiona as fontes públicas e institucionais sobre o mercado brasileiro de combustíveis (ANP, Receita Federal, IPEM/Inmetro, Procon, corpus normativo), produzindo informação rastreável e inteligência acionável para órgãos fiscalizadores, distribuidoras, postos, frotas, consumidores e academia — com monitoramento contínuo por agentes de IA.
 
-> **Status:** documentação de projeto (v1 em especificação — sem implementação publicada).
-> Este repositório contém apenas documentação; não contém código nem dados.
+> **Status:** documentação viva da v1, com fundação de dados, API pública e site já implantados.
+> Este repositório contém contratos e decisões; código e dados permanecem nos repositórios e ambientes próprios.
 
 ## O problema em uma frase
 

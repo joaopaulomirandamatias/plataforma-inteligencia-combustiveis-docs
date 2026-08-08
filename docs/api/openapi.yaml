@@ -86,7 +86,7 @@ paths:
       summary: Evidências geográficas de postos por viewport ou raio
       operationId: listarPostosMapa
       description: >
-        Retorna somente evidências GEO-01 com coordenadas encontradas e vigentes
+        Retorna evidências GEO-ANP ou GEO-01 com coordenadas encontradas e vigentes
         no `as_of`. O cliente informa exatamente um modo: bounding-box completo
         (`min_lat`, `min_lon`, `max_lat`, `max_lon`) OU raio completo
         (`lat`, `lon`, `raio_m`). Misturar, omitir ou enviar um grupo incompleto
@@ -118,7 +118,7 @@ paths:
           schema: { type: number, exclusiveMinimum: 0, maximum: 100000 }
         - name: provedor
           in: query
-          description: Filtro opcional da evidência GEO-01; não define canonicidade.
+          description: Filtro opcional da evidência geográfica; não define canonicidade.
           schema: { type: string, minLength: 1 }
         - name: versao_provedor
           in: query
@@ -514,7 +514,7 @@ components:
         - fonte
         - localizador
       properties:
-        evidencia_id: { type: integer, description: identificador da evidência GEO-01, não da localização canônica }
+        evidencia_id: { type: integer, description: identificador da evidência geográfica, não da localização canônica }
         posto_id: { type: string }
         razao_social: { type: [string, "null"] }
         bandeira: { type: [string, "null"] }
@@ -528,7 +528,7 @@ components:
         resultado_chave: { type: [string, "null"] }
         resultado_sha256: { type: string, pattern: "^[0-9a-f]{64}$" }
         coletado_em: { type: string, format: date-time }
-        fonte: { type: string, const: GEO-01 }
+        fonte: { type: string, enum: [GEO-01, GEO-ANP] }
         localizador: { type: string, description: linhagem interna da evidência geográfica }
 
     MapaPostos:
