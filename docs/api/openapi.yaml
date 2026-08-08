@@ -80,6 +80,64 @@ paths:
               schema: { $ref: "#/components/schemas/PaginaPostos" }
         "422": { $ref: "#/components/responses/Problem" }
 
+  /postos/mapa:
+    get:
+      tags: [postos]
+      summary: Evidências geográficas de postos por viewport ou raio
+      operationId: listarPostosMapa
+      description: >
+        Retorna somente evidências GEO-01 com coordenadas encontradas e vigentes
+        no `as_of`. O cliente informa exatamente um modo: bounding-box completo
+        (`min_lat`, `min_lon`, `max_lat`, `max_lon`) OU raio completo
+        (`lat`, `lon`, `raio_m`). Misturar, omitir ou enviar um grupo incompleto
+        é erro 422. O resultado não escolhe uma "coordenada oficial": cada item
+        preserva provedor, versão e proveniência da evidência. O limite é duro;
+        `truncado=true` manda o cliente reduzir o viewport/raio em vez de tentar
+        paginar o universo inteiro de pontos.
+      parameters:
+        - name: min_lat
+          in: query
+          schema: { type: number, minimum: -90, maximum: 90 }
+        - name: min_lon
+          in: query
+          schema: { type: number, minimum: -180, maximum: 180 }
+        - name: max_lat
+          in: query
+          schema: { type: number, minimum: -90, maximum: 90 }
+        - name: max_lon
+          in: query
+          schema: { type: number, minimum: -180, maximum: 180 }
+        - name: lat
+          in: query
+          schema: { type: number, minimum: -90, maximum: 90 }
+        - name: lon
+          in: query
+          schema: { type: number, minimum: -180, maximum: 180 }
+        - name: raio_m
+          in: query
+          schema: { type: number, exclusiveMinimum: 0, maximum: 100000 }
+        - name: provedor
+          in: query
+          description: Filtro opcional da evidência GEO-01; não define canonicidade.
+          schema: { type: string, minLength: 1 }
+        - name: versao_provedor
+          in: query
+          description: Filtro opcional da versão do provedor; exige `provedor`.
+          schema: { type: string, minLength: 1 }
+        - $ref: "#/components/parameters/AsOf"
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 1000, default: 500 }
+      responses:
+        "200":
+          description: >
+            Evidências espaciais limitadas ao filtro solicitado. `distancia_m`
+            é preenchida no modo raio e nula no modo bbox.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MapaPostos" }
+        "422": { $ref: "#/components/responses/Problem" }
+
   /postos/{posto_id}:
     get:
       tags: [postos]
@@ -442,6 +500,50 @@ components:
         proximo_cursor: { type: [string, "null"] }
         as_of: { type: string, format: date-time }
         busca: { type: [string, "null"], description: termo de busca efetivamente aplicado (eco antifalha-silenciosa); null quando não houve q }
+
+    PontoMapa:
+      type: object
+      required:
+        - evidencia_id
+        - posto_id
+        - latitude
+        - longitude
+        - provedor
+        - versao_provedor
+        - coletado_em
+        - fonte
+        - localizador
+      properties:
+        evidencia_id: { type: integer, description: identificador da evidência GEO-01, não da localização canônica }
+        posto_id: { type: string }
+        razao_social: { type: [string, "null"] }
+        bandeira: { type: [string, "null"] }
+        municipio: { type: [string, "null"] }
+        uf: { type: [string, "null"] }
+        latitude: { type: number, minimum: -90, maximum: 90 }
+        longitude: { type: number, minimum: -180, maximum: 180 }
+        distancia_m: { type: [number, "null"], minimum: 0, description: somente no modo raio }
+        provedor: { type: string }
+        versao_provedor: { type: string }
+        resultado_chave: { type: [string, "null"] }
+        resultado_sha256: { type: string, pattern: "^[0-9a-f]{64}$" }
+        coletado_em: { type: string, format: date-time }
+        fonte: { type: string, const: GEO-01 }
+        localizador: { type: string, description: linhagem interna da evidência geográfica }
+
+    MapaPostos:
+      type: object
+      required: [itens, truncado, modo, limite, as_of]
+      properties:
+        itens:
+          type: array
+          items: { $ref: "#/components/schemas/PontoMapa" }
+        truncado:
+          type: boolean
+          description: true quando há mais evidências no filtro; cliente deve reduzir viewport/raio.
+        modo: { type: string, enum: [bbox, raio] }
+        limite: { type: integer, minimum: 1, maximum: 1000 }
+        as_of: { type: string, format: date-time }
 
     NovaAssinatura:
       type: object
