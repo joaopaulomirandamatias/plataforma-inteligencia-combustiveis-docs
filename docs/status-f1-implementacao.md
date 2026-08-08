@@ -12,10 +12,10 @@ Atualizado em 2026-08-08. Este arquivo registra **o que passou por código + CI 
 | F1-06 clusters | ✅ concluída | migração 011, snapshots imutáveis, revisão/split, as-of, Railway com 11 migrações |
 | F1-07a golden record puro | ✅ concluída | política versionada, proveniência, alternativas, cobertura e corte bitemporal |
 | F1-07b adaptador F01 | ✅ concluída | PostgreSQL → candidatos F01 → golden record, CI verde e rollout protegido |
-| F1-08a codebook/pacote cego | 🔄 em validação | testes e implementação em `main`; aguardando CI antes de promoção |
-| F1-08b amostragem | ⬜ não iniciada | depende do contrato F1-08a verde |
-| F1-08c adjudicação | ⬜ não iniciada | rótulos humanos devem ser append-only |
-| F1-08d relatório | ⬜ não iniciada | depende de amostra real rotulada |
+| F1-08a codebook/pacote cego | ✅ concluída | labels fechados, IDs opacos, pacote sem score/threshold/destino/chaves internas; CI e promoção verdes |
+| F1-08b amostragem | 🔄 em validação | quotas exatas, ranking SHA-256 por seed e mapa interno separado implementados em `main` |
+| F1-08c adjudicação | 📐 contrato fechado | modelo append-only documentado; migração/código ainda não iniciados |
+| F1-08d relatório | ⬜ não iniciada | depende de amostra real rotulada para alegação empírica |
 
 ## Produção
 
