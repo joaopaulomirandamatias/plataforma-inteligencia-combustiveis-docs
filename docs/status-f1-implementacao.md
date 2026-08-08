@@ -1,150 +1,225 @@
 # Status executado — F1 Entity Resolution
 
-Atualizado em 2026-08-08. Este arquivo separa deliberadamente três estados que não podem ser confundidos:
+Atualizado em 2026-08-08. Este documento separa deliberadamente quatro estados que não podem ser confundidos:
 
-1. **implementado** — existe código/teste/artefato no repositório;
+1. **implementado** — existe código, migração, teste ou artefato;
 2. **validado tecnicamente** — passou por lint + suíte completa em PostgreSQL 16 + contrato OpenAPI no Railway CI Sandbox;
-3. **promovido oficialmente** — passou pelo GitHub Actions oficial, foi promovido para `deploy` e confirmado no Railway de produção.
+3. **integrado em `main`** — o conteúdo chegou ao branch de desenvolvimento, ainda sem significar aprovação para produção;
+4. **promovido oficialmente** — passou pelo GitHub Actions oficial, foi promovido para `deploy` e confirmado no Railway de produção.
 
-A validação no Railway CI Sandbox é evidência técnica suplementar. Ela **não autoriza** mover `deploy`, aplicar migrações manualmente ou declarar rollout em produção enquanto o gate oficial estiver bloqueado.
+A validação no Railway CI Sandbox é evidência técnica suplementar. Ela não autoriza mover `deploy`, aplicar migrações manualmente ou declarar rollout em produção.
 
-| Card | Estado | Evidência principal |
+## Estado executivo atual
+
+- Produção continua em `deploy` @ `fe222717a9beec1e2684f8b6ea56aeb2a6c4cda8`.
+- `main` está em `6636274321b0a73777c27005f27064f52a822df2` e recebeu por merges concorrentes a pilha F1 até uma versão intermediária do F1-15, além de arquivos temporários do Railway CI Sandbox.
+- A PR #16 reconcilia `main` com a árvore limpa e final do F1-15.
+- A árvore resultante da PR #16 é `e51c74d091553487710961679aa0d84e1249301d`, exatamente a árvore já validada no sandbox.
+- GitHub Actions continua bloqueado por Billing & plans: novas tentativas ainda terminam antes do primeiro step.
+- Não houve promoção de `deploy` nem aplicação manual das migrações 012–016 em produção.
+- As antigas PRs empilhadas #1, #3, #4, #5, #6, #7, #8, #9, #10 e #15 foram encerradas como **supersedidas/absorvidas**, não mergeadas novamente.
+- A PR #16 é a única PR aberta e o único caminho de reconciliação autorizado.
+
+## Cards F1
+
+| Card | Estado atual | Evidência principal |
 |---|---|---|
-| F1-01 fila de revisão | ✅ concluída / produção | migração 010, módulo de revisão, testes e produção saudável |
-| F1-02 normalização | ✅ concluída / produção | normalizadores determinísticos e testes de CNPJ/CEP/UF/texto |
-| F1-03 blocking | ✅ concluída / produção | blocking cross-source mensurável, redução/cobertura, sem vínculo automático |
-| F1-04 similaridade + FS | ✅ concluída / produção | vetor multi-campo + Fellegi–Sunter somente com parâmetros explícitos |
-| F1-05 calibração | ✅ engenharia / ⏳ empírico | dois limiares e métricas implementados; parâmetros reais dependem de rótulos humanos |
-| F1-06 clusters | ✅ concluída / produção | migração 011, snapshots imutáveis, revisão/split e consultas as-of |
-| F1-07a golden record puro | ✅ concluída / produção | política versionada, proveniência, alternativas, cobertura e corte bitemporal |
-| F1-07b adaptador F01 | ✅ concluída / produção | PostgreSQL → candidatos F01 → golden record; rollout protegido |
-| F1-08a codebook/pacote cego v1 | ✅ concluída / produção | IDs opacos; pacote sem score/threshold/destino/chaves internas |
-| F1-08a v2 blindagem de estratos | 🟢 PR #5 / sandbox verde / oficial bloqueado | estratos permanecem internos; pacote exporta somente ID opaco + evidências factuais; 269 testes + OpenAPI 8/8 |
-| F1-08b amostragem | 🟢 `main` / sandbox verde / oficial bloqueado | quotas exatas, ranking SHA-256 por seed e reconciliação interna; `main`: 269 testes + OpenAPI 8/8 |
-| F1-08c rótulos/adjudicação | 🟢 `main` / sandbox verde / oficial bloqueado | migração 012 append-only, dupla revisão e trigger SQL de divergência; `main`: 269 testes + OpenAPI 8/8 |
-| F1-08d relatório formal | 🟢 PR #1 / sandbox verde / oficial bloqueado | holdout, Wilson 95%, estratos, blocking, Kappa, versões e JSON canônico; 283 testes + OpenAPI 8/8 |
-| F1-08e operação | 🟢 PR #3 / sandbox verde / oficial bloqueado | `pic-er`: pacote cego, registro, rótulos, adjudicação e status; 275 testes + OpenAPI 8/8 |
-| F1-09 pipeline de candidatos | 🟢 PR #4 / sandbox verde / oficial bloqueado | migração 013, escala explícita e pipeline F01↔F02/F03→fila; 292 testes + OpenAPI 8/8 |
-| F1-10 fila → amostra cega | 🟢 PR #6 / composição sandbox verde / oficial bloqueado | validação integrada #4 + #5 + #6; bloqueio estrutural contra vazamento de estratos/referências; 299 testes + OpenAPI 8/8 |
-| F1-11 manifesto reproduzível | 🟢 PR #7 / sandbox verde / oficial bloqueado | manifesto canônico auto-verificável, hash derivado e CLI; 287 testes + OpenAPI 8/8 |
-| F1-12 população congelada | 🟢 PR #8 / sandbox verde / oficial bloqueado | regenera candidatos dos snapshots/cortes do manifesto, valida proveniência/versões e calcula `populacao_sha256`; 338 testes + OpenAPI 8/8 |
-| F1-13 revisores independentes | 🟢 PR #9 / sandbox verde / oficial bloqueado | migração 014, exatamente dois revisores, bloqueio de intruso/atribuição tardia/adjudicador não independente e CLI; 347 testes + OpenAPI 8/8 |
+| F1-01 fila de revisão | ✅ produção | migração 010, revisão e testes |
+| F1-02 normalização | ✅ produção | normalizadores determinísticos |
+| F1-03 blocking | ✅ produção | blocking cross-source mensurável |
+| F1-04 similaridade + FS | ✅ produção | vetor multi-campo e FS com parâmetros explícitos |
+| F1-05 calibração | ✅ engenharia / ⏳ empírico | thresholds e parâmetros reais dependem de rótulos humanos |
+| F1-06 clusters | ✅ produção | migração 011 e snapshots imutáveis |
+| F1-07 golden record | ✅ produção | política versionada e proveniência |
+| F1-08a v2 blindagem | 🟢 integrado em `main` / sandbox verde / oficial bloqueado | codebook `f1-08a-v2`; estratos não chegam ao revisor |
+| F1-08b amostragem | 🟢 integrado em `main` / sandbox verde / oficial bloqueado | seed + quotas determinísticas |
+| F1-08c rótulos/adjudicação | 🟢 integrado em `main` / sandbox verde / oficial bloqueado | migração 012, append-only e gate SQL de divergência |
+| F1-08d relatório formal | 🟢 integrado em `main` / sandbox verde / oficial bloqueado | Wilson 95%, holdout, Kappa, blocking e métricas por estrato |
+| F1-08e operação | 🟢 integrado em `main` / sandbox verde / oficial bloqueado | `pic-er`, importação e status |
+| F1-09 pipeline candidatos | 🟢 integrado em `main` / sandbox verde / oficial bloqueado | migração 013 e escalas explícitas |
+| F1-10 fila → amostra | 🟢 integrado em `main` / sandbox verde / oficial bloqueado | pacote cego com barreiras de vazamento |
+| F1-11 manifesto | 🟢 integrado em `main` / sandbox verde / oficial bloqueado | manifesto canônico e verificável |
+| F1-12 população congelada | 🟢 integrado em `main` / sandbox verde / oficial bloqueado | `populacao_sha256` vinculado aos snapshots/cortes |
+| F1-13 revisores independentes | 🟢 integrado em `main` / sandbox verde / oficial bloqueado | migração 014, exatamente dois revisores antes dos rótulos |
+| F1-14 pacote por revisor | 🟢 integrado em `main` / sandbox verde / oficial bloqueado | migração 015, pacote cego individual, SHA e mapa exato de itens |
+| F1-15 split treino/calibração/teste | 🟢 PR #16 reconcilia versão final / sandbox verde / oficial bloqueado | migração 016 e componentes conectados sem leakage direto |
 
-## Railway CI Sandbox
+## Railway CI Sandbox — evidência técnica
 
-Foi criado um projeto Railway isolado, `PIC CI Sandbox`, com PostgreSQL 16 dedicado e sem credenciais de produção. O runner:
+O projeto isolado `PIC CI Sandbox` usa PostgreSQL 16 dedicado, banco descartável por execução e nenhuma credencial de produção. O gate executa:
 
-- recria banco descartável por serviço;
-- executa `ruff check .`;
-- executa a suíte padrão `pytest -ra`;
-- executa novamente o contrato OpenAPI com `--strict-markers`;
-- imprime `CI_RESULT=PASS` somente após todos os gates passarem.
+- `ruff check .`;
+- `pytest -ra`;
+- contrato OpenAPI novamente com `--strict-markers`;
+- `CI_RESULT=PASS` somente após todos os gates.
 
-Resultados confirmados:
+Resultados principais acumulados:
 
-| Alvo | Resultado técnico |
+| Alvo | Resultado |
 |---|---|
-| `main` F1-08b/c | 269 passed, 1 skipped, 2 deselected; OpenAPI 8/8; PASS |
-| PR #5 F1-08a v2 | 269 passed, 1 skipped, 2 deselected; OpenAPI 8/8; PASS |
-| PR #1 F1-08d | 283 passed, 1 skipped, 2 deselected; OpenAPI 8/8; PASS |
-| PR #3 F1-08e | 275 passed, 1 skipped, 2 deselected; OpenAPI 8/8; PASS |
-| PR #4 F1-09 | 292 passed, 1 skipped, 2 deselected; OpenAPI 8/8; PASS |
-| PR #6 integrada com #4+#5 | 299 passed, 1 skipped, 2 deselected; OpenAPI 8/8; PASS |
-| PR #7 F1-11 | 287 passed, 1 skipped, 2 deselected; OpenAPI 8/8; PASS |
-| integration train #1+#3+#4+#5+#6+#7 | **331 passed**, 1 skipped, 2 deselected; OpenAPI 8/8; **PASS** |
-| PR #8 F1-12 | **338 passed**, 1 skipped, 2 deselected; OpenAPI 8/8; **PASS** |
-| PR #9 F1-13 | **347 passed**, 1 skipped, 2 deselected; OpenAPI 8/8; **PASS** |
+| integration train #1+#3+#4+#5+#6+#7 | **331 passed**, 1 skipped, 2 deselected; OpenAPI 8/8 |
+| F1-12 | **338 passed**, 1 skipped, 2 deselected; OpenAPI 8/8 |
+| F1-13 | **347 passed**, 1 skipped, 2 deselected; OpenAPI 8/8 |
+| F1-14 | **359 passed**, 1 skipped, 2 deselected; OpenAPI 8/8 |
+| F1-15 final | **369 passed**, 1 skipped, 2 deselected; OpenAPI 8/8; `CI_RESULT=PASS` |
 
-O integration train usa os artefatos das PRs em uma branch temporária e cobre simultaneamente migração 013, pipeline, blindagem v2, fila→amostra, operação, manifesto e relatório formal. F1-12 e F1-13 foram depois validadas empilhadas sobre essa composição limpa, preservando as dependências sem levar arquivos temporários do runner para as PRs de produto.
+Deployment final F1-15 no sandbox: `55be0aa3-11e5-44b6-919d-578a3fba8993`.
 
-## Defeitos reais encontrados pelo sandbox e corrigidos
+A árvore validada é `e51c74d091553487710961679aa0d84e1249301d`, a mesma árvore produzida pela PR #16.
 
-### PR #4 — ordenação de imports
+## Defeitos reais encontrados e corrigidos
 
-O primeiro source-build válido da PR #4 foi bloqueado pelo `ruff` por `I001` em `tests/test_pipeline_entity_resolution_carga.py`. A correção foi aplicada na branch real da PR, sem relaxar lint.
+O sandbox não foi tratado como mera formalidade. Ele encontrou e bloqueou defeitos reais, todos corrigidos na branch de produto antes da validação final:
 
-### PR #7 — round-trip do manifesto
+- F1-09: `ruff I001` em teste do pipeline;
+- F1-11: incompatibilidade de round-trip `tuple`/`list` no manifesto;
+- F1-12: `ruff I001` ao adicionar teste de isolamento da fila;
+- F1-13: necessidade de constraint trigger para impedir atribuição parcial de um único revisor;
+- F1-14: `ruff I001` e, na revisão adversarial, loophole de hash+contagem sem mapa exato de itens;
+- F1-15: `ruff B023` em closure do desempate e necessidade de barreira SQL contra o mesmo registro cru atravessar partições.
 
-O primeiro run válido da PR #7 revelou que `dataclasses.asdict()` preservava estruturas `tuple` em memória enquanto o próprio validador aceitava apenas `list`. A branch real foi corrigida para aceitar `list/tuple` na representação interna e normalizar para lista sem flexibilizar outros tipos.
+## F1-14 — proveniência do julgamento humano
 
-### PR #8 — isolamento e lint
+F1-14 adiciona a migração 015 e fecha a ligação entre julgamento humano e o artefato efetivamente associado ao revisor.
 
-F1-12 adicionou teste explícito provando que um candidato antigo já pendente na fila não entra na população somente por existir: são carregados apenas os IDs regenerados dos snapshots do manifesto. O primeiro run que incluiu esse teste foi corretamente bloqueado por `ruff I001`; o erro foi corrigido na branch real antes do gate final.
+O protocolo novo registra antes do primeiro rótulo:
 
-### PR #9 — defesa em profundidade no banco
+- `pacote_sha256`;
+- manifesto e codebook;
+- revisor opaco;
+- quantidade de itens;
+- mapa exato de `item_id` do pacote.
 
-Além da atribuição transacional na camada Python, F1-13 recebeu um `CONSTRAINT TRIGGER` diferido no PostgreSQL para rejeitar no `COMMIT` uma atribuição SQL com somente um revisor. Outro trigger impede ativar o modo controlado depois do primeiro rótulo. Os dois cenários possuem testes SQL diretos e passaram no sandbox.
+Quando F1-14 está ativo, o rótulo precisa citar exatamente o SHA registrado. Rótulos históricos permanecem compatíveis com `NULL`; não existe backfill inventado.
+
+SHA-256 aqui prova integridade/reprodutibilidade do artefato, não autenticidade da pessoa nem correção do julgamento.
+
+## F1-15 — separação treino/calibração/teste
+
+F1-15 adiciona a migração 016 e congela o split antes dos rótulos humanos.
+
+Cada par de revisão é tratado como aresta entre registros `(fonte, chave)`. Pares conectados por qualquer registro, inclusive transitivamente, formam um grupo indivisível. Assim, o mesmo registro observado não pode aparecer em treino e teste, ou calibração e teste.
+
+Seed e pesos das partições são entradas explícitas do protocolo; o código não esconde proporções padrão.
+
+O PostgreSQL valida no `COMMIT`:
+
+- cobertura de todos os itens;
+- contagem de grupos;
+- existência das três partições;
+- referências `candidato_ligacao:<id>` válidas;
+- ausência do mesmo registro de origem em partições distintas.
+
+Limite metodológico: um componente estrutural não é declarado como identidade física verdadeira. Dois componentes distintos ainda podem representar o mesmo posto; isso só pode ser auditado após ground truth humano real.
+
+## Reconciliação do `main`
+
+Durante a execução, PRs temporárias #11–#14 foram mergeadas diretamente em `main`. Isso absorveu a pilha funcional F1, mas também levou arquivos do runner temporário e uma versão intermediária do F1-15.
+
+A PR #16 resolve sem reescrever histórico:
+
+1. remove `Dockerfile.ci`, `Dockerfile.ci.dockerignore`, `railway.ci.json`, `ci/railway_ci.py` e três markers temporários;
+2. aplica a correção final B023 do F1-15;
+3. adiciona a operação final de congelamento/exportação do split;
+4. adiciona o teste operacional correspondente.
+
+A árvore resultante é byte a byte igual à árvore validada no sandbox.
 
 ## Produção
 
-O backend e o worker Railway acompanham somente a branch `deploy`, promovida pelo GitHub Actions oficial depois de lint, PostgreSQL 16, suíte completa e validação explícita do contrato OpenAPI.
+A produção continua protegida pela branch `deploy`.
 
-A API usa `/saude` como healthcheck. O último SHA confirmado em produção continua sendo:
+SHA confirmado:
 
 `fe222717a9beec1e2684f8b6ea56aeb2a6c4cda8`
 
-Esse SHA corresponde à F1-08a v1. API e worker estão no mesmo commit de `deploy`. As migrações `012_rotulos_entity_resolution.sql`, `013_escala_pontuacao_candidatos.sql` e `014_atribuicao_revisores_entity_resolution.sql` **não são consideradas em produção** até ocorrer CI oficial verde + promoção automática para `deploy` + confirmação posterior no Railway.
+API e worker permanecem nesse estado. As migrações 012, 013, 014, 015 e 016 **não são consideradas aplicadas em produção**.
 
-## Bloqueio operacional atual — GitHub Actions
+Nunca usar como atalho:
 
-O GitHub Actions oficial continua encerrando o job antes de executar qualquer etapa. A tentativa oficial 2 do run `31244956118` voltou a terminar com `runner_id = 0` e nenhuma etapa executada. O check informou:
+- mover `deploy` manualmente;
+- apontar Railway para `main`;
+- aplicar 012–016 manualmente;
+- declarar rollout porque o sandbox ficou verde.
+
+## Bloqueio operacional — GitHub Actions
+
+Mesmo após o usuário informar que o GitHub foi ativado, novas tentativas oficiais em 2026-08-08 continuam terminando sem executar qualquer step. A anotação do check continua informando:
 
 > The job was not started because recent account payments have failed or your spending limit needs to be increased. Please check the 'Billing & plans' section in your settings.
 
-Consequências:
+Portanto, o desbloqueio ainda não foi propagado ao executor do GitHub Actions ou permanece alguma restrição de pagamento/spending limit.
 
-- F1-08b/c permanecem em `main`, mas não são promovidas para `deploy`;
-- PRs #1, #3, #4, #5, #6, #7, #8 e #9 permanecem sem autorização para merge oficial;
-- o Railway CI Sandbox não substitui o gate documentado;
-- não é permitido contornar o gate movendo `deploy` ou aplicando 012/013/014 manualmente.
+Issue #2 permanece aberta até o primeiro job oficial realmente receber runner e executar lint/testes.
 
-Ação externa necessária: regularizar **GitHub → Settings → Billing & plans**, verificando pagamento, limite de gastos do Actions e minutos/uso em repositórios privados.
+## Sequência segura quando o Actions desbloquear
 
-## Ordem de integração após desbloqueio
+Não existe mais necessidade de mesclar a antiga cadeia #1/#3/#4/#5/#6/#7/#8/#9/#10/#15: elas foram encerradas como supersedidas.
 
-A ordem deve preservar dependências e fazer o CI oficial rodar depois de cada merge:
+A sequência agora é curta:
 
-1. reexecutar CI oficial de `main` para F1-08b/c + migração 012;
-2. permitir promoção automática para `deploy` somente se verde;
-3. confirmar API/worker no mesmo SHA, 12 migrações e `/saude` HTTP 200;
-4. mesclar PR #5 — codebook v2 / blindagem de estratos;
-5. mesclar PR #1 — relatório formal F1-08d;
-6. mesclar PR #3 — operação F1-08e;
-7. mesclar PR #7 — manifesto reproduzível F1-11, após #3;
-8. mesclar PR #4 — pipeline F1-09 / migração 013;
-9. retarget/rebase e mesclar PR #6 — fila→amostra, já sobre #4 + #5;
-10. retarget/rebase e mesclar PR #8 — população congelada, já sobre a composição integrada;
-11. retarget/rebase e mesclar PR #9 — revisores independentes / migração 014, após #8;
-12. após cada merge, aguardar CI oficial verde, promoção e confirmação antes do card seguinte.
+1. executar GitHub Actions oficial na PR #16;
+2. somente se verde, mesclar #16 em `main`;
+3. executar o CI oficial do novo `main`;
+4. permitir que o workflow promova o **SHA exato** aprovado para `deploy`;
+5. confirmar no Railway que API e worker executam o mesmo SHA;
+6. confirmar `/saude` HTTP 200;
+7. confirmar aplicação controlada das migrações 012–016;
+8. só então iniciar o experimento empírico real.
 
-## Fronteira atual da engenharia e próxima fase empírica
+## Fronteira atual da engenharia
 
-Com F1-12 e F1-13, a engenharia já cobre a preparação do experimento até o ponto em que passam a ser indispensáveis decisões humanas reais:
+A engenharia pré-rótulo agora cobre:
 
-1. gerar população real de candidatos a partir dos snapshots congelados;
-2. produzir `populacao_sha256` e amostra estratificada reproduzível;
-3. registrar o experimento e o mapa interno;
-4. congelar dois revisores humanos independentes antes do primeiro rótulo;
-5. entregar os pacotes cegos;
-6. coletar **rótulos humanos reais** dos dois revisores;
-7. adjudicar divergências com terceiro independente;
-8. separar treino/calibração/holdout por identidade/cluster, sem vazamento;
-9. auditar blocking de forma independente;
-10. congelar parâmetros e limiares;
-11. executar o relatório F1-08d no holdout final.
+1. snapshots/cortes de fontes congelados;
+2. geração auditável da população candidata;
+3. `populacao_sha256` determinístico;
+4. amostragem estratificada e pacote cego;
+5. registro imutável do experimento;
+6. exatamente dois revisores independentes pré-atribuídos;
+7. pacote cego individual por revisor com SHA e mapa de itens;
+8. split treino/calibração/teste congelado por grupos estruturais antes dos rótulos;
+9. rótulos append-only;
+10. adjudicação por terceiro independente;
+11. relatório formal de holdout com Wilson 95%, blocking e concordância.
 
-Não existe trabalho de engenharia legítimo que possa substituir os passos 6–7 inventando respostas. Qualquer automação posterior deve consumir rótulos reais, nunca simulá-los como evidência empírica.
+A partir daqui, a principal fronteira não é criar mais resultados sintéticos: é coletar evidência empírica real.
 
-## Limites que continuam intencionais
+## Próxima fase empírica — não fabricar
 
-- Não há alegação empírica de precisão ≥ 0,98 ou recall ≥ 0,95 sem amostra independente rotulada.
-- O holdout final mede limiares congelados; ele nunca participa da escolha desses limiares.
-- `INDETERMINADO` é cobertura não resolvida e não entra como classe negativa.
-- A meta de precisão/recall só é considerada sustentada quando o **limite inferior** do intervalo de Wilson 95% também atende ao requisito.
-- `blocking_recall` e `reduction_ratio` são reportados separadamente para impedir que a avaliação condicional ao classificador esconda pares perdidos antes do score.
-- Peso Fellegi–Sunter `log2(m/u)` não é probabilidade e não é convertido implicitamente para `[0,1]`.
-- `probabilidade_01` exige artefato explícito de calibração.
-- F1-09 começa apenas por pendências `cnpj_sem_posto`; `cnpj_ausente/invalido` exigem política de chave própria.
-- F05 ainda não entra no golden record enquanto não existir parser estruturado com contrato próprio.
-- Geografia continua ausente do Entity Resolution até GEO-01 produzir coordenadas verificáveis.
-- Nenhuma etapa da F1 move fatos existentes; identidade é versionada em camada própria.
+Após o rollout oficial:
+
+1. gerar a população real a partir dos snapshots escolhidos;
+2. congelar manifesto, população e split;
+3. produzir os pacotes cegos individuais;
+4. registrar dois revisores humanos reais;
+5. coletar rótulos independentes;
+6. adjudicar divergências com terceiro humano independente;
+7. auditar blocking por conjunto independente;
+8. usar treino apenas para parâmetros/modelo;
+9. usar calibração apenas para limiares;
+10. congelar parâmetros/thresholds;
+11. abrir o holdout `teste` uma única vez;
+12. executar F1-08d e aceitar ou rejeitar as metas conforme os dados.
+
+Não inventar:
+
+- rótulos de revisores;
+- `m/u`;
+- thresholds;
+- precisão/recall;
+- Kappa;
+- blocking recall;
+- calibração;
+- evidência de identidade física.
+
+## Limites intencionais mantidos
+
+- falso positivo de identidade é mais custoso que vínculo perdido;
+- `INDETERMINADO` não vira negativo automaticamente;
+- peso Fellegi–Sunter `log2(m/u)` não é probabilidade;
+- `probabilidade_01` exige calibração explícita;
+- F05 permanece fora do ER/golden record até parser estruturado próprio;
+- geografia permanece fora até GEO-01 produzir coordenadas verificáveis;
+- fatos continuam imutáveis/bitemporais; identidade é camada separada e versionada;
+- nenhuma etapa F1 autoriza alegação de fraude.
