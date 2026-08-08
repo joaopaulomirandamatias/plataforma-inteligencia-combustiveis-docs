@@ -25,6 +25,6 @@ O mapa precisa de **coordenadas (lat/long)**; o cadastro ANP (F01) traz **endere
 
 ## Sequência proposta (quando priorizado)
 
-GEO-01 conector de geocodificação (bitemporal, reprocessável) → GEO-02 PostGIS no Railway (troca de imagem) + coluna/índice → GEO-03 endpoint espacial (bbox) → WEB-02 mapa no frontend (Leaflet + clusterização).
+GEO-01 conector de geocodificação (bitemporal, reprocessável) → GEO-02 colunas `latitude`/`longitude` + índices `btree` + extensões `cube`/`earthdistance` → GEO-03 endpoint espacial (`bbox`/raio) → WEB-02 mapa no frontend (Leaflet + clusterização + fetch client-side por viewport).
 
-Não iniciado. Priorização é do usuário; hoje o foco é WEB-01c (localizador no payload + bump Next).
+**Estado em 2026-08-08:** WEB-01c (retenção do `localizador` fora do payload e atualização do Next) foi concluído. O épico do mapa ainda não foi iniciado; a decisão antiga de trocar a imagem do Railway para PostGIS está **revogada para a v1**.
