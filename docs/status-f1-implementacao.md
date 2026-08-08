@@ -27,6 +27,8 @@ A validação no Railway CI Sandbox é evidência técnica suplementar. Ela **n�
 | F1-09 pipeline de candidatos | 🟢 PR #4 / sandbox verde / oficial bloqueado | migração 013, escala explícita e pipeline F01↔F02/F03→fila; 292 testes + OpenAPI 8/8 |
 | F1-10 fila → amostra cega | 🟢 PR #6 / composição sandbox verde / oficial bloqueado | validação integrada #4 + #5 + #6; bloqueio estrutural contra vazamento de estratos/referências; 299 testes + OpenAPI 8/8 |
 | F1-11 manifesto reproduzível | 🟢 PR #7 / sandbox verde / oficial bloqueado | manifesto canônico auto-verificável, hash derivado e CLI; 287 testes + OpenAPI 8/8 |
+| F1-12 população congelada | 🟢 PR #8 / sandbox verde / oficial bloqueado | regenera candidatos dos snapshots/cortes do manifesto, valida proveniência/versões e calcula `populacao_sha256`; 338 testes + OpenAPI 8/8 |
+| F1-13 revisores independentes | 🟢 PR #9 / sandbox verde / oficial bloqueado | migração 014, exatamente dois revisores, bloqueio de intruso/atribuição tardia/adjudicador não independente e CLI; 347 testes + OpenAPI 8/8 |
 
 ## Railway CI Sandbox
 
@@ -50,24 +52,28 @@ Resultados confirmados:
 | PR #6 integrada com #4+#5 | 299 passed, 1 skipped, 2 deselected; OpenAPI 8/8; PASS |
 | PR #7 F1-11 | 287 passed, 1 skipped, 2 deselected; OpenAPI 8/8; PASS |
 | integration train #1+#3+#4+#5+#6+#7 | **331 passed**, 1 skipped, 2 deselected; OpenAPI 8/8; **PASS** |
+| PR #8 F1-12 | **338 passed**, 1 skipped, 2 deselected; OpenAPI 8/8; **PASS** |
+| PR #9 F1-13 | **347 passed**, 1 skipped, 2 deselected; OpenAPI 8/8; **PASS** |
 
-O integration train usa os artefatos das PRs em uma branch temporária e cobre simultaneamente migração 013, pipeline, blindagem v2, fila→amostra, operação, manifesto e relatório formal. Ele serve para detectar incompatibilidades entre cards antes dos merges oficiais.
+O integration train usa os artefatos das PRs em uma branch temporária e cobre simultaneamente migração 013, pipeline, blindagem v2, fila→amostra, operação, manifesto e relatório formal. F1-12 e F1-13 foram depois validadas empilhadas sobre essa composição limpa, preservando as dependências sem levar arquivos temporários do runner para as PRs de produto.
 
 ## Defeitos reais encontrados pelo sandbox e corrigidos
 
 ### PR #4 — ordenação de imports
 
-O primeiro source-build válido da PR #4 foi bloqueado pelo `ruff` por `I001` em `tests/test_pipeline_entity_resolution_carga.py`. A correção foi aplicada na branch real da PR, sem relaxar lint. Após o ajuste, a suíte completa passou, inclusive:
-
-- `tests/test_migracao_013_compatibilidade.py`;
-- `tests/test_pipeline_entity_resolution.py`;
-- `tests/test_pipeline_entity_resolution_carga.py`;
-- `tests/test_pipeline_entity_resolution_postgres.py`;
-- `tests/test_pontuacao_candidatos.py`.
+O primeiro source-build válido da PR #4 foi bloqueado pelo `ruff` por `I001` em `tests/test_pipeline_entity_resolution_carga.py`. A correção foi aplicada na branch real da PR, sem relaxar lint.
 
 ### PR #7 — round-trip do manifesto
 
-O primeiro run válido da PR #7 revelou que `dataclasses.asdict()` preservava estruturas `tuple` em memória enquanto o próprio validador aceitava apenas `list`. Assim, um artefato produzido pelo sistema podia falhar no próprio round-trip. A branch real foi corrigida para aceitar `list/tuple` na representação interna e normalizar para lista sem flexibilizar outros tipos. Depois da correção, os testes de manifesto passaram e o integration train completo permaneceu verde.
+O primeiro run válido da PR #7 revelou que `dataclasses.asdict()` preservava estruturas `tuple` em memória enquanto o próprio validador aceitava apenas `list`. A branch real foi corrigida para aceitar `list/tuple` na representação interna e normalizar para lista sem flexibilizar outros tipos.
+
+### PR #8 — isolamento e lint
+
+F1-12 adicionou teste explícito provando que um candidato antigo já pendente na fila não entra na população somente por existir: são carregados apenas os IDs regenerados dos snapshots do manifesto. O primeiro run que incluiu esse teste foi corretamente bloqueado por `ruff I001`; o erro foi corrigido na branch real antes do gate final.
+
+### PR #9 — defesa em profundidade no banco
+
+Além da atribuição transacional na camada Python, F1-13 recebeu um `CONSTRAINT TRIGGER` diferido no PostgreSQL para rejeitar no `COMMIT` uma atribuição SQL com somente um revisor. Outro trigger impede ativar o modo controlado depois do primeiro rótulo. Os dois cenários possuem testes SQL diretos e passaram no sandbox.
 
 ## Produção
 
@@ -77,21 +83,20 @@ A API usa `/saude` como healthcheck. O último SHA confirmado em produção cont
 
 `fe222717a9beec1e2684f8b6ea56aeb2a6c4cda8`
 
-Esse SHA corresponde à F1-08a v1. API e worker estão no mesmo commit de `deploy`. As migrações `012_rotulos_entity_resolution.sql` e `013_escala_pontuacao_candidatos.sql` **não são consideradas em produção** até ocorrer CI oficial verde + promoção automática para `deploy` + confirmação posterior no Railway.
+Esse SHA corresponde à F1-08a v1. API e worker estão no mesmo commit de `deploy`. As migrações `012_rotulos_entity_resolution.sql`, `013_escala_pontuacao_candidatos.sql` e `014_atribuicao_revisores_entity_resolution.sql` **não são consideradas em produção** até ocorrer CI oficial verde + promoção automática para `deploy` + confirmação posterior no Railway.
 
 ## Bloqueio operacional atual — GitHub Actions
 
-O GitHub Actions oficial continua encerrando o job antes de executar qualquer etapa. O check-run informou:
+O GitHub Actions oficial continua encerrando o job antes de executar qualquer etapa. A tentativa oficial 2 do run `31244956118` voltou a terminar com `runner_id = 0` e nenhuma etapa executada. O check informou:
 
 > The job was not started because recent account payments have failed or your spending limit needs to be increased. Please check the 'Billing & plans' section in your settings.
 
 Consequências:
 
-- job `validar` termina antes de receber runner (`runner_id = 0`, `steps = null`);
 - F1-08b/c permanecem em `main`, mas não são promovidas para `deploy`;
-- PRs #1, #3, #4, #5, #6 e #7 permanecem sem autorização para merge oficial;
+- PRs #1, #3, #4, #5, #6, #7, #8 e #9 permanecem sem autorização para merge oficial;
 - o Railway CI Sandbox não substitui o gate documentado;
-- não é permitido contornar o gate movendo `deploy` ou aplicando 012/013 manualmente.
+- não é permitido contornar o gate movendo `deploy` ou aplicando 012/013/014 manualmente.
 
 Ação externa necessária: regularizar **GitHub → Settings → Billing & plans**, verificando pagamento, limite de gastos do Actions e minutos/uso em repositórios privados.
 
@@ -108,24 +113,27 @@ A ordem deve preservar dependências e fazer o CI oficial rodar depois de cada m
 7. mesclar PR #7 — manifesto reproduzível F1-11, após #3;
 8. mesclar PR #4 — pipeline F1-09 / migração 013;
 9. retarget/rebase e mesclar PR #6 — fila→amostra, já sobre #4 + #5;
-10. após cada merge, aguardar CI oficial verde, promoção e confirmação antes do card seguinte.
+10. retarget/rebase e mesclar PR #8 — população congelada, já sobre a composição integrada;
+11. retarget/rebase e mesclar PR #9 — revisores independentes / migração 014, após #8;
+12. após cada merge, aguardar CI oficial verde, promoção e confirmação antes do card seguinte.
 
-## Próxima fase empírica
+## Fronteira atual da engenharia e próxima fase empírica
 
-Depois que a árvore acima estiver oficialmente promovida, o trabalho deixa de ser apenas engenharia de infraestrutura e passa a exigir dados humanos reais:
+Com F1-12 e F1-13, a engenharia já cobre a preparação do experimento até o ponto em que passam a ser indispensáveis decisões humanas reais:
 
-1. gerar população real de candidatos;
-2. congelar fontes, cortes, commit, normalizador, blocking, similaridade, modelo, seed e quotas no manifesto F1-11;
-3. gerar amostra estratificada determinística;
-4. produzir pacotes cegos v2;
-5. obter pelo menos dois revisores humanos independentes;
-6. adjudicar divergências;
-7. separar treino/calibração/holdout por identidade/cluster, sem vazamento;
-8. auditar blocking de forma independente;
-9. congelar parâmetros e limiares;
-10. executar o relatório F1-08d no holdout final.
+1. gerar população real de candidatos a partir dos snapshots congelados;
+2. produzir `populacao_sha256` e amostra estratificada reproduzível;
+3. registrar o experimento e o mapa interno;
+4. congelar dois revisores humanos independentes antes do primeiro rótulo;
+5. entregar os pacotes cegos;
+6. coletar **rótulos humanos reais** dos dois revisores;
+7. adjudicar divergências com terceiro independente;
+8. separar treino/calibração/holdout por identidade/cluster, sem vazamento;
+9. auditar blocking de forma independente;
+10. congelar parâmetros e limiares;
+11. executar o relatório F1-08d no holdout final.
 
-Somente essa fase pode sustentar alegações empíricas de qualidade.
+Não existe trabalho de engenharia legítimo que possa substituir os passos 6–7 inventando respostas. Qualquer automação posterior deve consumir rótulos reais, nunca simulá-los como evidência empírica.
 
 ## Limites que continuam intencionais
 
