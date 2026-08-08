@@ -136,18 +136,57 @@ Passa a registrar também:
 
 Esses campos são de auditoria interna, não de revisão cega.
 
+## Operação
+
+A CLI adiciona o comando:
+
+```text
+pic-er preparar-experimento \
+  --manifesto manifesto.json \
+  --populacao populacao.json \
+  --pacote pacote-cego.json \
+  --interno reconciliacao.json
+```
+
+Os três destinos precisam ser distintos. A população e a reconciliação são artefatos internos; o pacote cego continua sem fingerprint, referência interna e estratos.
+
 ## Critérios de aceite
 
-- [ ] mesmo manifesto + mesmos bytes + mesmo código produz o mesmo `populacao_sha256`;
-- [ ] repetição idempotente do pipeline não duplica a população lógica;
-- [ ] candidato de fila não gerado pelos snapshots declarados não entra silenciosamente;
-- [ ] hash factual fora do manifesto falha alto;
-- [ ] F02/F03 declarado sem carga exata falha alto;
-- [ ] versão de runtime/modelo divergente falha alto;
-- [ ] fonte ainda não suportada falha alto;
-- [ ] pacote final continua estruturalmente cego;
-- [ ] suíte completa PostgreSQL 16, lint e contrato OpenAPI verdes no Railway CI Sandbox;
+- [x] mesmo manifesto + mesmos bytes + mesmo código produz o mesmo `populacao_sha256`;
+- [x] repetição idempotente do pipeline não duplica a população lógica;
+- [x] candidato de fila não gerado pelos snapshots declarados não entra silenciosamente;
+- [x] hash factual fora do manifesto falha alto;
+- [x] F02/F03 declarado sem carga exata falha alto;
+- [x] versão de runtime/modelo divergente falha alto;
+- [x] fonte ainda não suportada falha alto;
+- [x] pacote final continua estruturalmente cego;
+- [x] suíte completa PostgreSQL 16, lint e contrato OpenAPI verdes no Railway CI Sandbox;
 - [ ] merge/promoção continuam condicionados ao GitHub Actions oficial.
+
+## Evidência de validação técnica
+
+PR draft: `#8` — `work/f1-12-populacao-congelada`.
+
+Branch real validada no commit:
+
+`c3ca708c7029cee73ebeff686b9c900c79747e4a`
+
+Railway CI Sandbox, deployment:
+
+`9764f690-6db0-474c-8817-1beb76d734ad`
+
+Resultado:
+
+- `ruff check .`: PASS;
+- suíte completa: **338 passed, 1 skipped, 2 deselected**;
+- testes F1-12 de população/CLI: **6 passed**;
+- isolamento contra candidato antigo da fila: **1 passed**;
+- contrato OpenAPI: **8/8 passed**;
+- `CI_RESULT=PASS`.
+
+O sandbox também detectou um `ruff I001` no primeiro run que incluiu o teste de isolamento. A correção foi aplicada na branch real antes da repetição do gate; o erro não foi ignorado nem corrigido apenas na branch temporária de CI.
+
+Esta evidência é **técnica suplementar**. O GitHub Actions oficial continua bloqueado por Billing & plans; portanto F1-12 não está promovida para `deploy` nem em produção.
 
 ## O que F1-12 não prova
 
