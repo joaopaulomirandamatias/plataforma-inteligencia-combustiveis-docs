@@ -57,16 +57,28 @@ paths:
         - name: municipio
           in: query
           schema: { type: string, description: nome do município (código IBGE quando houver geocodificação) }
+        - name: q
+          in: query
+          description: >
+            Busca por razão social ou CNPJ. Classificação: removidos os dígitos,
+            se sobram só separadores de CNPJ é CNPJ, qualquer letra torna textual.
+            Termo com menos de 3 caracteres é RECUSADO (422 `busca_curta`) — `%a%`
+            varreria a tabela para devolver ruído que o usuário leria como resposta.
+          schema: { type: string, minLength: 3 }
         - $ref: "#/components/parameters/Cursor"
         - $ref: "#/components/parameters/Limit"
       responses:
         "200":
-          description: Ordenação estável com COLLATE "C" — cursor keyset
-            independente da collation do ambiente (armadilha 8 do modelo
-            bitemporal).
+          description: >
+            Ordenação estável com COLLATE "C" — cursor keyset independente da
+            collation do ambiente (armadilha 8). O campo `busca` ecoa o termo
+            aplicado: é o contrato antifalha-silenciosa — cliente que não vê o
+            eco sabe que a busca por nome não foi aplicada, em vez de exibir a
+            lista inteira como se fosse resultado.
           content:
             application/json:
               schema: { $ref: "#/components/schemas/PaginaPostos" }
+        "422": { $ref: "#/components/responses/Problem" }
 
   /postos/{posto_id}:
     get:
@@ -429,6 +441,7 @@ components:
         itens: { type: array, items: { $ref: "#/components/schemas/PostoResumo" } }
         proximo_cursor: { type: [string, "null"] }
         as_of: { type: string, format: date-time }
+        busca: { type: [string, "null"], description: termo de busca efetivamente aplicado (eco antifalha-silenciosa); null quando não houve q }
 
     NovaAssinatura:
       type: object
