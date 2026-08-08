@@ -9,16 +9,20 @@ Ideia do usuário (2026-08-08): a ficha pública deve ter um mapa mostrando os p
 | GEO-01 geocodificação | ✅ **engenharia em produção** | migração 017, cache imutável, fato bitemporal, `pic-geo`, provedor plugável e nenhuma chamada externa sem configuração explícita |
 | GEO-02 armazenamento/índices espaciais | ✅ **produção** | migração 018, `cube` + `earthdistance`, B-tree de viewport, GiST para raio e view factual; 387 testes + OpenAPI 8/8 |
 | GEO-03 API espacial | ✅ **produção** | `/v1/postos/mapa`: bbox ou raio, `as_of`, limite duro, truncamento e proveniência; 402 testes + OpenAPI 9/9 |
-| WEB-02 mapa | 🟡 **em implementação** | mapa client-side, carregamento por viewport, estado vazio e sem serializar universo no RSC |
+| GEO-04 posição oficial ANP | ✅ **engenharia em produção** | API oficial paginada, snapshot imutável, vínculo por código SIMP e defesa por CNPJ; a carga diária entra pelo GEO-05 |
+| WEB-02 mapa | ✅ **produção** | mapa client-side por viewport, proxy same-origin com allowlist, estado vazio, clusters e atribuição de tiles |
+| GEO-05 operação diária | 🟡 **em promoção** | GEO-ANP após F01, cadência por livro-razão e comando isolado `pic-geo-anp` |
 
-**Importante:** GEO-01 em produção significa que a infraestrutura para geocodificar existe. O conjunto real de coordenadas continua vazio/não produzido enquanto não for escolhido explicitamente um provedor de lote e um protocolo de execução. Nenhuma variável `PIC_GEO_*` está configurada nos serviços produtivos no fechamento do GEO-03.
+**Importante:** GEO-01 continua sendo o fallback de geocodificação por endereço e não depende de um provedor configurado em produção. A fonte primária agora é GEO-ANP, obtida diretamente da API oficial de Revendedores. O mapa permanece vazio até a primeira execução operacional de GEO-ANP concluir.
 
 ## Sequência arquitetural
 
 1. **GEO-01 — geocodificação auditável. ✅** Endereço F01 vira consulta determinística; respostas são cacheadas por provedor + versão + hash e vinculadas ao fato cadastral sem declarar a coordenada como verdade canônica. Resultado `nao_encontrado` também é preservado. O servidor público do Nominatim não é configurado como executor de lote.
 2. **GEO-02 — armazenamento geoespacial. ✅** `cube`/`earthdistance`, índices e view factual preparam bbox e raio sem duplicar lat/lon nem escolher ponto oficial.
 3. **GEO-03 — API. ✅** Endpoint devolve evidências geográficas por bounding-box/raio, nunca a lista inteira. O contrato canônico foi definido antes da implementação.
-4. **WEB-02 — frontend. 🟡** Mapa client-side deve buscar o endpoint espacial por viewport e exibir as evidências sem transformar o mapa em fonte de verdade.
+4. **GEO-04 — posição publicada pela ANP. ✅** API oficial como fonte primária; GEO-01 permanece fallback explícito.
+5. **WEB-02 — frontend. ✅** Mapa client-side consulta o endpoint espacial por viewport sem transformar evidência em verdade canônica.
+6. **GEO-05 — operação diária. 🟡** A agenda executa GEO-ANP depois do F01 e mantém o executor isolado para reprocessamentos controlados.
 
 ## GEO-01 — entregue
 
@@ -84,7 +88,7 @@ Contrato canônico: `GET /v1/postos/mapa` (no OpenAPI o caminho é `/postos/mapa
 - filtros opcionais por `provedor` e `versao_provedor`;
 - bbox usa latitude/longitude indexáveis;
 - raio usa `earth_box` + `earth_distance`;
-- cada item é uma **evidência GEO-01**, com `evidencia_id`, provedor, versão, hash, fonte e localizador;
+- cada item é uma **evidência GEO-ANP ou GEO-01**, com `evidencia_id`, provedor, versão, hash, fonte e localizador;
 - `distancia_m` existe apenas no modo raio;
 - não existe seleção implícita de coordenada canônica;
 - bbox v1 não cruza o antimeridiano (`min_lon < max_lon`), suficiente para o recorte brasileiro.
@@ -112,9 +116,9 @@ Produção GEO-03:
 
 O ambiente de ferramentas usado durante a implementação não conseguiu resolver diretamente o domínio público Railway para uma sonda manual adicional. Isso foi tratado como limitação da ferramenta, não como evidência de sucesso ou falha do endpoint. A evidência aceita para promoção foi o CI oficial + rollout Railway + healthcheck 200. Não foi registrado um resultado externo inventado.
 
-## WEB-02 — próximo card
+## WEB-02 — entregue em produção
 
-Diretrizes já fixadas:
+Diretrizes implementadas:
 
 1. componente de mapa deve ser **client-side**;
 2. pontos são buscados diretamente em `/v1/postos/mapa` por viewport/raio;
@@ -136,6 +140,6 @@ Diretrizes já fixadas:
 
 ## Sequência atual
 
-`GEO-01 ✅` → `GEO-02 ✅` → `GEO-03 ✅` → `WEB-02 🟡`
+`GEO-01 ✅` → `GEO-02 ✅` → `GEO-03 ✅` → `GEO-04 ✅` → `WEB-02 ✅` → `GEO-05 🟡`
 
-Em paralelo, após a escolha de provedor, deve existir um protocolo separado para **produção e validação do dataset geocodificado real**, incluindo cobertura, amostra manual de qualidade, versionamento e reprocessamento.
+Depois da primeira carga GEO-ANP, o próximo gate é medir cobertura, registros sem vínculo, divergências de CNPJ e necessidade real do fallback GEO-01 antes de ativar qualquer provedor externo.
