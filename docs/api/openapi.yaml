@@ -396,7 +396,7 @@ components:
       type: object
       required: [tipo, data_validade, fonte, localizador]
       properties:
-        tipo: { type: string, enum: [pmqc, autuacao, aferição, cadastro, preco] }
+        tipo: { type: string, enum: [pmqc, autuacao, aferição, cadastro, preco, atendimento] }
         data_validade: { type: string, format: date }
         descricao: { type: string, description: "factual, datada — política de linguagem aplicada na origem" }
         fonte: { type: string }
@@ -474,7 +474,7 @@ components:
         contagens:
           type: object
           additionalProperties: { type: integer }
-          description: fatos por conjunto (F01/F02/F03)
+          description: fatos por conjunto (F01/F02/F03/F06)
         cargas:
           type: array
           items:
