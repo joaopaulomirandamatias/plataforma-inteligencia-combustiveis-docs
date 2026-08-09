@@ -80,17 +80,18 @@ Decisão da F0-01, arbitrada de novo na verificação da F0-02: **tolerante a co
 | Riscos | **É retrato do presente** — sócio que saiu desaparece do dump seguinte; **CPF mascarado** (`***XXXXXX**`); layout muda sem aviso |
 | Cuidados | **Arquivar todo mês, começando já** — mês não capturado é história perdida em caráter irreversível; T3 sempre probabilístico com score; diff mensal gera os eventos `MudancaSocietariaDetectada` |
 
-## F06 — Consumidor.gov / Procon
+## F06 — Senacon / Procons · Sindec
 
 | Campo | Valor |
 |---|---|
-| O que traz | Reclamações por empresa: assunto, relato, desfecho |
-| Cadência | Contínua na origem; ingestão diária/semanal |
-| Formato | Dados abertos (Consumidor.gov) + ⚠ variação por Procon estadual |
-| Acesso | Público |
-| Papel | Sinal precoce; NLP de assunto e padrão emergente |
-| Riscos | Texto livre; empresa identificada por nome; viés de quem reclama; conteúdo é relato de terceiro, não fato apurado |
-| Cuidados | Reclamação **nunca** vira indício sozinha — é dado de contexto; conteúdo externo é dado, não instrução (ADR-008: passa pelos agentes como material citável, jamais como comando) |
+| O que traz | Atendimentos registrados nos Procons, individualizados por fornecedor: `DataAtendimento`, `NumeroCNPJ`, tipo, assunto, grupo de assunto, problema, grupo de problema e UF |
+| Cadência | **Trimestral** no portal; o conector sonda o catálogo semanalmente porque a data de publicação varia |
+| Formato *(verificado em 2026-08-09)* | CSV. Recurso vigente observado: `da-fornecedor-t1-2026-01-01-a-2026-03-31.csv` |
+| Acesso *(verificado em 2026-08-09)* | Público, catálogo CKAN da Senacon: [conjunto Sindec](https://dados.mj.gov.br/dataset/atendimentos-de-consumidores-nos-procons-sindec); [recurso 2026-T1](https://dados.mj.gov.br/dataset/atendimentos-de-consumidores-nos-procons-sindec/resource/359a4f79-629f-4e9e-ab79-ad1b6c0bfdb4) |
+| Semântica temporal | Evento datado pela própria fonte: validade de um dia, `[DataAtendimento, DataAtendimento+1)` |
+| Papel | **Sinal de contexto oficial** na linha do tempo; não é rótulo nem prova de responsabilidade do fornecedor |
+| Riscos | Viés de cobertura e de quem procura o Procon; categorias podem conter linguagem acusatória; o portal pode remover ou substituir recursos; o arquivo aberto contém atributos do consumidor |
+| Cuidados | Descobrir o recurso pelo catálogo, validar esquema e preservar a zona bruta; vincular **somente por CNPJ exato**, nunca por nome aproximado; persistir no fato apenas data e classificações do atendimento — sexo, faixa etária, CEP e texto de consumidor não entram; a borda pública aplica a política de linguagem |
 
 ## F07 — IBGE / bases geográficas
 
