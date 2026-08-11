@@ -352,6 +352,7 @@ components:
         status: { type: integer }
         detail: { type: string }
         codigo: { type: string, description: catálogo de códigos de domínio, versionado junto deste contrato }
+        correlation_id: { type: string, description: identificador opaco para correlação com os logs do serviço }
 
     Posto:
       type: object
