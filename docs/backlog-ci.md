@@ -44,6 +44,24 @@ Isso corrige duas classes de falso verde:
 - testes de banco pulando por ausência de PostgreSQL;
 - teste de contrato pulando porque `docs` não estava disponível no filesystem.
 
+## Contrato canônico (`plataforma-inteligencia-combustiveis-docs`)
+
+O próprio repositório de documentação também valida toda mudança em PR e push
+para `main`. O gate usa dependências travadas no `package-lock.json` e:
+
+1. prova que o checkout corresponde ao SHA do evento;
+2. exige OpenAPI `3.1.0`;
+3. recusa `$ref` remoto antes de qualquer tentativa de resolução;
+4. resolve referências internas e valida a estrutura OpenAPI;
+5. exige `operationId` presente e único;
+6. reprova exemplos incompatíveis com seus schemas;
+7. executa regressões sintéticas que precisam falhar quando esses controles são
+   quebrados.
+
+O backend continua fixando um commit imutável deste repositório. Assim, o CI de
+docs protege o contrato antes do merge, e o CI do backend protege a integração
+quando o SHA fixado for atualizado.
+
 ### Proteção contra corrida
 
 O workflow usa `concurrency` com cancelamento da execução anterior. Além disso, imediatamente antes da promoção ele busca `origin/main` de novo e compara o SHA validado com o SHA atual.

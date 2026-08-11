@@ -1,0 +1,10 @@
+extends:
+  - minimal
+
+rules:
+  no-unresolved-refs: error
+  operation-operationId: error
+  operation-operationId-unique: error
+  no-invalid-media-type-examples:
+    severity: error
+    allowAdditionalProperties: false

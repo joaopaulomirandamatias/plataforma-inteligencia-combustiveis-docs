@@ -24,11 +24,15 @@ security:
 
 tags:
   - name: postos
+    description: Consulta pública e histórica de postos e suas evidências.
   - name: rankings
     description: Restrito a papel de órgão com escopo
   - name: precos
+    description: Séries e agregados de preços públicos.
   - name: webhooks
+    description: Assinaturas de notificações para integrações autorizadas.
   - name: datasets
+    description: Catálogo de datasets abertos e versionados.
   - name: operacao
     description: Saúde e frescor — fora do versionamento /v1
 
@@ -41,6 +45,7 @@ paths:
       security: []
       responses:
         "200":
+          description: Serviço saudável e estado de frescor das fontes.
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Saude" }
@@ -185,6 +190,7 @@ paths:
         - $ref: "#/components/parameters/AsOf"
       responses:
         "200":
+          description: Grupo societário aparente no instante consultado.
           content:
             application/json:
               schema: { $ref: "#/components/schemas/GrupoSocietario" }
@@ -255,6 +261,7 @@ paths:
             schema: { $ref: "#/components/schemas/NovaAssinatura" }
       responses:
         "201":
+          description: Assinatura registrada.
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Assinatura" }
@@ -265,6 +272,7 @@ paths:
       operationId: listarAssinaturas
       responses:
         "200":
+          description: Assinaturas registradas para o cliente.
           content:
             application/json:
               schema:
@@ -291,6 +299,7 @@ paths:
       operationId: listarDatasets
       responses:
         "200":
+          description: Datasets abertos disponíveis.
           content:
             application/json:
               schema:
@@ -351,7 +360,7 @@ components:
         title: { type: string }
         status: { type: integer }
         detail: { type: string }
-        codigo: { type: string, description: catálogo de códigos de domínio, versionado junto deste contrato }
+        codigo: { type: string, description: "catálogo de códigos de domínio, versionado junto deste contrato" }
         correlation_id: { type: string, description: identificador opaco para correlação com os logs do serviço }
 
     Posto:
@@ -365,7 +374,7 @@ components:
         cnpj: { type: string, description: chave pública da fonte F01 — dado público de PJ }
         bandeira: { type: string }
         endereco: { type: string }
-        municipio: { type: string, description: nome do município, como publicado pela fonte }
+        municipio: { type: string, description: "nome do município, como publicado pela fonte" }
         uf: { type: string }
         cadastro_desde: { type: string, format: date-time, description: início da validade do cadastro vigente (armadilha 7 — data da coleta) }
         cargas:
@@ -515,7 +524,7 @@ components:
         - fonte
         - localizador
       properties:
-        evidencia_id: { type: integer, description: identificador da evidência geográfica, não da localização canônica }
+        evidencia_id: { type: integer, description: "identificador da evidência geográfica, não da localização canônica" }
         posto_id: { type: string }
         razao_social: { type: [string, "null"] }
         bandeira: { type: [string, "null"] }

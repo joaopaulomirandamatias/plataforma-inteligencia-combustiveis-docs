@@ -1,0 +1,44 @@
+name: Contrato OpenAPI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: contrato-openapi-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout documentação
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Provar SHA do contrato
+        shell: bash
+        run: |
+          if [ "$(git rev-parse HEAD)" != "$GITHUB_SHA" ]; then
+            echo "ERRO: checkout do contrato diverge do SHA do evento."
+            exit 1
+          fi
+
+      - name: Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 24.18.0
+          cache: npm
+
+      - name: Instalar dependências travadas
+        run: npm ci --ignore-scripts --no-audit
+
+      - name: Validar contrato e regressões do gate
+        run: npm run check
