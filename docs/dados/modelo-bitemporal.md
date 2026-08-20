@@ -39,6 +39,15 @@ CREATE TABLE fato_qualidade (
 Convenções: extremo aberto é `'infinity'` (nunca `NULL`); todo timestamp é `timestamptz` em UTC; `fonte` + `localizador` são obrigatórios — fato sem linhagem não é persistível (invariante do domínio).
 
 > **Estado vs. evento.** O DDL acima é de tabela de **estado** — um fato vivo por entidade (ex.: cadastro). Em tabela de **evento**, onde várias ocorrências do mesmo posto são legítimas (amostras, preços), o **grão do evento entra na chave de exclusão** junto de `posto_id` — ex.: `(posto_id, amostra_id, …)` ou `(posto_id, semana, produto, …)`. Sem o grão, o `EXCLUDE` rejeitaria a segunda ocorrência real. (Lacuna encontrada na implementação F0-02.)
+>
+> O grão cresce também numa tabela de **estado**, quando FONTES diferentes
+> afirmam legitimamente o mesmo tipo de estado sobre a mesma entidade. Posição
+> geográfica de um posto é estado — um ponto vivo por vez —, mas GEO-ANP (posição
+> publicada pela ANP) e GEO-01 (geocodificação por endereço) são evidências
+> concorrentes que podem coexistir; a chave é `(posto_id, fonte, …)`. Com
+> `posto_id` sozinho, a segunda fonte seria rejeitada como duplicata. A pergunta
+> que decide o grão não é "estado ou evento?", e sim **"o que pode ser verdade ao
+> mesmo tempo sem se contradizer?"**. (Migração 022.)
 
 ## As quatro operações permitidas
 
@@ -82,6 +91,47 @@ Regra de produto: **rota quente não consulta bitemporal cru** — lê snapshot 
 7. **Fonte-retrato sem data de referência.** Fonte que publica o estado corrente sem declarar a que data o retrato se refere (ex.: cadastro de revendedores da ANP — sem `Last-Modified`/`ETag`) tem `validade` iniciada na **data da coleta**, a melhor aproximação disponível. Consequência assumida: o histórico dessa fonte começa na primeira coleta; as-of anterior devolve vazio — e isso é **verdade**, não defeito. Datas de sub-fatos do payload (ex.: `DATAPUBLICACAO` = data da autorização) **não retroagem** a validade do retrato: retroagir fabricaria história para atributos mutáveis (bandeira, endereço). Se o sub-fato importar como fato próprio ("autorização publicada em D"), ele vira tipo de fato separado com a validade dele. **Corolário para reprocessamento:** ao recarregar da zona bruta, a referência temporal vem do manifesto (data da coleta original), nunca do relógio corrente — reprocessar não é recoletar. E a referência é **carimbada uma única vez e preservada no manifesto** (`referencia_validade`): ela é a fonte de verdade da validade na carga original **e** no reprocessamento. Quando a fonte não declara data — o caso desta armadilha — a referência é o próprio `coletado_em`, e os dois coincidem por construção; quando a fonte declara (`Last-Modified`), a referência é a data declarada e diverge de `coletado_em` **legitimamente**. A regra universal é `lower(validade) = referencia_validade` do manifesto nos dois caminhos; `lower(validade) = coletado_em` é propriedade do caminho sem data declarada, não regra geral. O motivo do carimbo único: duas chamadas de relógio "quase iguais" divergem por milissegundos e quebram a equivalência de reconstrução da forma mais traiçoeira — pequena demais para parecer erro, exata o bastante para reprovar.
 
 8. **Comparação entre ambientes: fixe a collation.** `ORDER BY` textual segue a collation do banco — `C` no local e `en_US.utf8` no gerenciado ordenam diferente sobre dados **idênticos**, e uma impressão digital que agrega linhas ordenadas diverge parecendo defeito de dado. Hash de equivalência entre ambientes ordena com `COLLATE "C"` explícito. (Da verificação F0-02: os três recortes "divergiam" até a consulta fixar a collation — o dado estava certo; a comparação é que mentia.)
+
+9. **`EXCLUDE` proíbe sobreposição em TODO o tempo de transação — não só
+   "duas vivas agora".** É a armadilha mais cara desta lista, porque só aparece
+   quando já é tarde: na hora de acrescentar a restrição a uma tabela que foi
+   escrita sem ela.
+
+   Suponha um caminho de escrita que afirma sem nunca fechar a versão anterior.
+   Depois de N execuções, existem N linhas com transação `[t1, ∞)`, `[t2, ∞)`,
+   …, `[tN, ∞)`. O reflexo é "fecho as perdedoras agora e pronto" — e ele está
+   errado: fechar em `now()` produz `[t1, now)`, que **continua contendo**
+   `[tN, now)` e portanto continua sobreposta à sobrevivente. Não existe
+   instante de fechamento no presente que desfaça uma sobreposição do passado.
+
+   Só duas formas satisfazem a restrição, e nenhuma é de graça:
+
+   - **encadear retroativamente** — `[t1,t2)`, `[t2,t3)`, …, `[tN,∞)`, a cadeia
+     que a operação 2 teria produzido. Restaura o invariante e torna `as_of`
+     unívoco em todo o passado, mas reescreve `transacao` de linhas antigas:
+     apaga da base o episódio em que ela afirmou várias coisas ao mesmo tempo;
+   - **restrição parcial** (`WHERE upper(transacao) = 'infinity'`) — não toca em
+     nada, impede o defeito de voltar, e deixa a anomalia consultável **para
+     sempre** num `as_of` dentro da janela ruim.
+
+   Corolário prático: **o `EXCLUDE` não é item para "acrescentar depois". Ele
+   pertence à primeira migração da tabela.** Ele não é otimização nem detalhe de
+   integridade — é a única coisa que obriga a escrita a passar pela operação 2, e
+   sem ele o caminho de escrita erra em silêncio por tempo indeterminado.
+
+   Precedente: `fatos.fato_geocodificacao` nasceu na 017 sem a restrição e
+   acumulou três evidências vivas por posto até 2026-08-20. A migração 022
+   acrescentou o `EXCLUDE`, e a decisão do coordenador foi encadear
+   retroativamente **com arquivo de evidência obrigatório** — o estado anterior,
+   linha a linha e com hash, gravado antes do commit, para que o episódio
+   continue provável fora do banco. Runbook `docs/operacao-saneamento-geo.md`,
+   no repositório de código.
+
+   E como a restrição não aceita `NOT VALID` (só `CHECK` e `FK` aceitam), não há
+   como acrescentá-la desligada e validar depois: a migração que a adiciona ou
+   encontra o dado já saneado, ou falha. Prefira falhar com uma guarda explícita
+   que rode o mesmo predicado e nomeie o runbook, em vez de deixar o
+   `ADD CONSTRAINT` estourar apontando uma linha qualquer.
 
 ## Interação com a trilha de auditoria
 
