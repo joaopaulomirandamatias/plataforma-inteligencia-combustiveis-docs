@@ -88,17 +88,30 @@ paths:
   /postos/mapa:
     get:
       tags: [postos]
-      summary: Evidências geográficas de postos por viewport ou raio
+      summary: Um ponto por posto, por viewport ou raio
       operationId: listarPostosMapa
       description: >
-        Retorna evidências GEO-ANP ou GEO-01 com coordenadas encontradas e vigentes
-        no `as_of`. O cliente informa exatamente um modo: bounding-box completo
+        Retorna **no máximo um item por `posto_id`**: um ponto desenhável por posto.
+        O item continua sendo UMA evidência GEO-ANP ou GEO-01 com coordenada
+        encontrada e vigente no `as_of`, preservando provedor, versão, hashes,
+        fonte e localizador — a API não funde coordenadas nem calcula média.
+        Quando há mais de uma evidência viva para o mesmo posto no recorte, a
+        escolha é determinística e nesta ordem: (1) autoridade da fonte —
+        GEO-ANP, posição publicada pela ANP, vence GEO-01, geocodificação por
+        endereço, que é o fallback declarado; (2) `coletado_em` mais recente;
+        (3) desempate endereçado por conteúdo (`resultado_sha256`, depois
+        provedor e versão), ordenado com collation `C`. A mesma entrada produz a
+        mesma saída entre execuções e entre ambientes; a distância NÃO participa
+        do desempate, para que o ponto de um posto não dependa de onde o cliente
+        buscou. Escolher não é declarar coordenada canônica: o item diz qual
+        evidência foi usada, e a auditoria continua possível pelo `evidencia_id`.
+        A escolha é feita entre as evidências DENTRO do recorte pedido.
+        O cliente informa exatamente um modo: bounding-box completo
         (`min_lat`, `min_lon`, `max_lat`, `max_lon`) OU raio completo
         (`lat`, `lon`, `raio_m`). Misturar, omitir ou enviar um grupo incompleto
-        é erro 422. O resultado não escolhe uma "coordenada oficial": cada item
-        preserva provedor, versão e proveniência da evidência. O limite é duro;
-        `truncado=true` manda o cliente reduzir o viewport/raio em vez de tentar
-        paginar o universo inteiro de pontos.
+        é erro 422. O limite é duro e conta POSTOS; `truncado=true` manda o
+        cliente reduzir o viewport/raio em vez de tentar paginar o universo
+        inteiro de pontos.
       parameters:
         - name: min_lat
           in: query
@@ -136,8 +149,9 @@ paths:
       responses:
         "200":
           description: >
-            Evidências espaciais limitadas ao filtro solicitado. `distancia_m`
-            é preenchida no modo raio e nula no modo bbox.
+            Um ponto por posto dentro do filtro solicitado; `posto_id` não se
+            repete na lista. `distancia_m` é preenchida no modo raio e nula no
+            modo bbox.
           content:
             application/json:
               schema: { $ref: "#/components/schemas/MapaPostos" }
@@ -616,7 +630,7 @@ components:
         - fonte
         - localizador
       properties:
-        evidencia_id: { type: integer, description: "identificador da evidência geográfica, não da localização canônica" }
+        evidencia_id: { type: integer, description: "identificador da evidência geográfica ESCOLHIDA para representar o posto neste recorte; não é localização canônica, e pode mudar quando uma coleta nova chega" }
         posto_id: { type: string }
         razao_social: { type: [string, "null"] }
         bandeira: { type: [string, "null"] }
@@ -639,10 +653,15 @@ components:
       properties:
         itens:
           type: array
+          description: >
+            Um item por posto; `posto_id` não se repete. Cada item é a evidência
+            escolhida pela regra determinística descrita em `listarPostosMapa`.
           items: { $ref: "#/components/schemas/PontoMapa" }
         truncado:
           type: boolean
-          description: true quando há mais evidências no filtro; cliente deve reduzir viewport/raio.
+          description: >
+            true quando há mais POSTOS no filtro do que o `limite`; cliente deve
+            reduzir viewport/raio. Conta postos, não evidências.
         modo: { type: string, enum: [bbox, raio] }
         limite: { type: integer, minimum: 1, maximum: 1000 }
         as_of: { type: string, format: date-time }
