@@ -159,6 +159,57 @@ paths:
               schema: { $ref: "#/components/schemas/Posto" }
         "404": { $ref: "#/components/responses/Problem" }
 
+  /postos/{posto_id}/contexto-regional:
+    get:
+      tags: [postos]
+      summary: Preço do posto ao lado da média regional do produto
+      operationId: getContextoRegional
+      description: >
+        Para cada produto que o posto precificou na SEMANA ANP mais recente com
+        preço dele, devolve o `valor_venda` estruturado do posto e a média do
+        MESMO produto na MESMA semana em dois escopos: o município e a UF do
+        posto. `amostras` é COBERTURA — número de postos DISTINTOS que sustentam
+        a média, nunca contagem de linhas. A média é a média aritmética simples
+        de `valor_venda`. O agregado não tem `localizador`: não há origem única a
+        apontar; o `localizador` do item é a auditoria do fato de preço do
+        próprio posto. Posto inexistente é 404; posto conhecido sem fato de preço
+        devolve `itens: []`.
+      parameters:
+        - $ref: "#/components/parameters/PostoId"
+        - $ref: "#/components/parameters/AsOf"
+      responses:
+        "200":
+          description: >
+            Contexto regional as-of. Um item por produto precificado na semana
+            mais recente com preço do posto; cada item traz a média no município
+            e na UF.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ContextoRegional" }
+              example:
+                posto_id: "posto-abc123"
+                as_of: "2026-08-02T00:00:00Z"
+                itens:
+                  - produto: "GASOLINA COMUM"
+                    preco_posto: 6.199
+                    unidade: "R$ / litro"
+                    semana_inicio: "2026-07-26"
+                    semana_fim: "2026-08-02"
+                    fonte: "F03"
+                    localizador: "precos.csv@sha256:abcd…:42"
+                    medias:
+                      - escopo: "municipio"
+                        nome: "MACAPA"
+                        uf: "AP"
+                        media: 6.2733
+                        amostras: 12
+                      - escopo: "uf"
+                        nome: "AP"
+                        uf: "AP"
+                        media: 6.4015
+                        amostras: 57
+        "404": { $ref: "#/components/responses/Problem" }
+
   /postos/{posto_id}/historico:
     get:
       tags: [postos]
@@ -411,6 +462,47 @@ components:
         descricao: { type: string, description: "factual, datada — política de linguagem aplicada na origem" }
         fonte: { type: string }
         localizador: { type: string, description: linhagem até a origem }
+
+    MediaRegional:
+      type: object
+      required: [escopo, nome, uf, media, amostras]
+      description: >
+        Média de `valor_venda` do produto na semana, restrita a um escopo
+        geográfico. Sem `localizador`: é agregado de muitos fatos, não há origem
+        única a apontar.
+      properties:
+        escopo: { type: string, enum: [municipio, uf] }
+        nome: { type: string, description: "município (escopo municipio) ou UF (escopo uf), como publicado pela fonte" }
+        uf: { type: string, description: "UF do escopo — sempre presente, inclusive no escopo municipio" }
+        media: { type: number, description: média aritmética simples de valor_venda no produto+semana+escopo }
+        amostras: { type: integer, minimum: 1, description: "postos DISTINTOS que sustentam a média (cobertura), nunca contagem de linhas" }
+
+    ItemContextoRegional:
+      type: object
+      required: [produto, preco_posto, semana_inicio, semana_fim, fonte, medias]
+      properties:
+        produto: { type: string }
+        preco_posto: { type: number, description: valor_venda estruturado do posto (não é parse de texto) }
+        unidade: { type: [string, "null"], description: "unidade da fonte, ex.: R$ / litro" }
+        semana_inicio: { type: string, format: date, description: "início da semana ANP [domingo, domingo+7)" }
+        semana_fim: { type: string, format: date, description: "fim exclusivo da semana ANP (domingo+7)" }
+        fonte: { type: string, description: fonte do preço (F03/SLP) }
+        localizador: { type: string, description: linhagem do fato de preço do próprio posto — dado de auditoria }
+        medias:
+          type: array
+          description: escopo municipio e escopo uf; um escopo é omitido quando a linha de preço do posto não tem aquela chave geográfica
+          items: { $ref: "#/components/schemas/MediaRegional" }
+
+    ContextoRegional:
+      type: object
+      required: [posto_id, as_of, itens]
+      properties:
+        posto_id: { type: string }
+        as_of: { type: string, format: date-time }
+        itens:
+          type: array
+          description: um item por produto precificado na semana mais recente com preço do posto; vazio quando não há preço
+          items: { $ref: "#/components/schemas/ItemContextoRegional" }
 
     GrupoSocietario:
       type: object
