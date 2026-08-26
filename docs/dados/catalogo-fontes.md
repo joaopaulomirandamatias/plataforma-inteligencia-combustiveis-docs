@@ -157,3 +157,18 @@ Decisão da F0-01, arbitrada de novo na verificação da F0-02: **tolerante a co
 | F08 | Normativo | Público | Diária | Vigências/RAG | v1 |
 | F09 | IPEM | Convênio | — | Gabarito metrológico | 2 |
 | F10 | SEFAZ NFC-e | Restrito | Contínua | Reconciliação fiscal | 3 |
+
+---
+
+## Adaptadores candidatos não autoritativos
+
+Adaptadores não recebem identificador `Fxx` porque não são fontes de verdade. Eles
+podem facilitar acesso ou transformação, mas cada fato continua vinculado à origem
+primária.
+
+| Adaptador | Estado | Uso permitido agora | Documento |
+|---|---|---|---|
+| MCP Fiscal Brasil | candidato para PoC | validação e parsing offline com fixtures sintéticas | [avaliação e controles](mcp-fiscal-adaptador-candidato.md) |
+
+A inclusão nesta tabela não comprova implementação, autorização para dado fiscal,
+homologação ou adequação para produção.
