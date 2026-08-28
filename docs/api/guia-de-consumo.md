@@ -88,21 +88,27 @@ O papel e o **escopo** (UF, órgão, rede) viajariam no token, avaliados no gate
 
 > **Estado: no ar** nas operações servidas que aceitam o parâmetro.
 
-Os recursos históricos aceitam `?as_of=2026-03-12T00:00:00Z`, sem credencial:
+Os recursos históricos aceitam `?as_of=<instante ISO-8601 em UTC>`, sem credencial:
 
 ```bash
-curl "https://pic-api-production.up.railway.app/v1/postos/0000f496-39a8-5133-983f-73979b6e0ce0?as_of=2026-03-12T00:00:00Z"
+curl "https://pic-api-production.up.railway.app/v1/postos/0000f496-39a8-5133-983f-73979b6e0ce0?as_of=2026-08-12T00:00:00Z"
 ```
+
+**Escolha um `as_of` depois do piso da base.** A PIC não tem histórico anterior à sua primeira coleta: pedir um instante anterior a ela não é viajar para antes da mudança, é viajar para antes de existir registro. Hoje o piso é **2026-08-09** — `as_of=2026-03-12T00:00:00Z` nessa mesma chamada devolve `404`. O piso não é declarado em nenhum campo; o que existe é `/saude`, que lista `coletado_em` da carga mais recente de cada fonte e portanto dá um **teto** para ele, não o piso. Se precisar do valor exato, descubra por bisseção uma vez e fixe do seu lado.
 
 O `posto_id` é **opaco** e vem da coleção (`GET /v1/postos`) ou de uma resposta anterior — não o construa nem presuma formato. Os exemplos do contrato usam identificadores ilustrativos que não têm a forma dos reais; a autoridade é [ADR-003](../arquitetura/adr/adr-003-posto-id-canonico.md), e a fonte prática é a própria API.
 
 - Omitido → o instante corrente da chamada; a resposta ecoa o `as_of` que foi aplicado.
-- `as_of` anterior ao primeiro dado da base **devolve coleção vazia, não erro** — e vazio aí é verdade, não defeito: fonte-retrato tem histórico que começa na primeira coleta ([armadilha 7 do modelo bitemporal](../dados/modelo-bitemporal.md)).
+- `as_of` anterior ao piso da base **não devolve o mesmo em toda operação**, e a diferença quebra cliente:
+  - **coleção** (`/v1/postos`, `/v1/precos`, `/v1/postos/mapa`) → `200` com lista vazia. Vazio aí é verdade, não defeito: fonte-retrato tem histórico que começa na primeira coleta ([armadilha 7 do modelo bitemporal](../dados/modelo-bitemporal.md)).
+  - **recurso único** (`/v1/postos/{posto_id}`) → `404 posto_nao_encontrado`, o **mesmo** código de posto que nunca existiu. O `detail` diz o `as_of` aplicado; é o único jeito de distinguir "não existia ainda" de "não existe". Não trate 404 aí como id inválido sem antes olhar o `as_of` que você mandou.
 - `as_of` é ortogonal a filtro de recorte. Em `/v1/precos`, quem escolhe semana é `semana`/`semana_de`/`semana_ate`; `as_of` é a viagem no tempo.
 
 > **Divergência conhecida.** O contrato descreve `as_of` como a dimensão de **validade**, e o runtime aplica o mesmo instante também no **tempo de transação** — a versão viva é a que estava viva naquele instante. Na prática isso é mais forte do que o contrato promete (aproxima-se de as-of bitemporal completo), mas é comportamento observado, não contratado: a descrição do parâmetro no `openapi.yaml` precisa de card próprio. Até lá, programe contra o que o contrato promete.
 >
 > O runtime também aceita `as_of` em `GET /v1/postos`, que o contrato **não** declara entre os parâmetros dessa operação (embora `PaginaPostos` declare o campo `as_of` na resposta). Parâmetro não declarado é comportamento não contratado — pode sumir sem quebrar nada formalmente.
+>
+> E as duas operações do mesmo posto discordam sob `as_of` anterior ao piso: `GET /v1/postos/{id}` devolve `404 posto_nao_encontrado`, enquanto `GET /v1/postos/{id}/contexto-regional` devolve `200` com `itens` vazio — mesmo posto, mesmo instante, duas respostas. A guarda de existência existe (id inexistente devolve 404 nas duas), mas não é aplicada sob `as_of` na segunda. Enquanto não for uniformizado, não use o status do contexto regional para concluir que o posto existia naquele instante.
 
 Sobre reprodutibilidade: `versao_snapshot` é um **rótulo ecoado, não um parâmetro**. Nenhuma operação o aceita na entrada, e ele só aparece em `Saude`, `Posto` e `PaginaPrecos` — não em `PaginaPostos` nem em `MapaPostos`. O formato de hoje é provisório (`cargas/F01:9,F02:2,F03:3,GEO-ANP:6`), resolvível contra `ingestao.carga`, e serve para você registrar **contra qual estado da base** um número foi lido. A alavanca que de fato reproduz um resultado é fixar `as_of`. Snapshot materializado e versionado — o `SnapshotPublicado` do plano diretor — é desenho; enquanto não existir, a resposta é servida da base.
 
@@ -148,7 +154,7 @@ Códigos que o runtime emite hoje:
 | `banco_indisponivel` | 503 | A base não respondeu | Re-tentar com backoff |
 | `erro_interno` | 500 | Falha não prevista, já registrada com o `correlation_id` | Re-tentar; reportar o `correlation_id` |
 
-> **Desenho, não implementado:** `escopo_negado`, `quota_excedida`, `cursor_expirado`, `cobertura_insuficiente` e `as_of_anterior_a_base` pertencem a autenticação, quota, expiração de cursor e score — nada disso existe no runtime, e **nenhum** desses códigos é emitido hoje. Não escreva tratamento para eles esperando exercitá-lo. Em particular, `as_of` antes do primeiro dado devolve `200` com lista vazia, e não um erro.
+> **Desenho, não implementado:** `escopo_negado`, `quota_excedida`, `cursor_expirado`, `cobertura_insuficiente` e `as_of_anterior_a_base` pertencem a autenticação, quota, expiração de cursor e score — nada disso existe no runtime, e **nenhum** desses códigos é emitido hoje. Não escreva tratamento para eles esperando exercitá-lo. Em particular, `as_of` antes do piso da base devolve `200` com lista vazia **em coleção** e `404 posto_nao_encontrado` **em recurso único** — nunca um código próprio de "as_of fora da base".
 
 Ausência nunca é zero: lista vazia significa "nada no recorte", e `valor_venda: null` significa "a fonte publicou a observação sem preço de venda". Zero seria um preço, e a API não o inventa.
 
