@@ -690,7 +690,6 @@ components:
               fonte: { type: string }
               carga_id: { type: integer }
               coletado_em: { type: string, format: date-time }
-        municipio_ibge: { type: string, description: código IBGE — AUSENTE até a geocodificação (F1); o nome do município nunca é publicado neste campo }
         situacao_cadastral: { type: string, description: fase Entrega — ausente na API mínima }
         selo_transparencia: { type: boolean, description: fase Entrega — ausente na API mínima }
         fatos_recentes:
