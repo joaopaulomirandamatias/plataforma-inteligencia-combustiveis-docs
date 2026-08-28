@@ -10,14 +10,64 @@ info:
     - Erros: RFC 9457 (Problem Details).
     - Score e ranking exigem papel de órgão (ADR-005) — campos sensíveis são
       mascarados pelo gateway conforme papel+escopo, nunca pelo cliente.
+
+    ## `x-estado` — o que está NO AR, e o que está no papel
+
+    Este documento descreve o contrato ALVO. Nem toda operação declarada aqui
+    é servida hoje: das treze operações, **seis respondem e sete devolvem
+    404**. Um consumidor que trate o documento inteiro como disponível erra na
+    maioria das chamadas. Por isso **toda operação carrega `x-estado`**, e é
+    ele — não a presença no documento — que diz se dá para chamar:
+
+    | `x-estado` | Significado | Servida hoje? |
+    |---|---|---|
+    | `implemented` | Servida pelo runtime público, anônima. | **sim** |
+    | `planned` | Desenhada, ainda sem implementação. | não (404) |
+    | `restricted` | Existe por desenho e **não pode** ser servida ao público: depende de papel de órgão, que ainda não existe. | não (404) |
+    | `deprecated` | Ainda servida, com remoção anunciada. | sim |
+
+    O inventário serve de **allowlist** para integrador: filtre por
+    `x-estado in (implemented, deprecated)` e você tem exatamente o que o
+    runtime responde. A suíte do backend verifica os DOIS sentidos —
+    `implemented` sem rota servida é vermelho, e rota servida marcada
+    `planned`/`restricted` também. A comparação é sobre o **caminho efetivo**
+    (`servers[].url` + path), não sobre o nome do path.
+
+    ## Localização das operações
+
+    A base dos `servers` fica na **raiz do host**, e cada operação carrega o
+    próprio prefixo no path. Motivo: `/saude` NÃO é versionada — responde
+    sobre o processo, não sobre o contrato de negócio, e é o alvo do health
+    check da plataforma (`railway.json: healthcheckPath: /saude`). Com a base
+    em `.../v1` o documento apontava `/v1/saude`, que devolve 404. As rotas de
+    negócio trazem `/v1/` explícito no path.
+
+    ## Autenticação
+
+    O runtime público de hoje é **anônimo**: as operações `implemented`
+    declaram `security: []` e não pedem credencial nenhuma. Os esquemas `oidc`
+    e `apiKey` continuam declarados porque são o desenho das operações
+    `restricted` e `planned` — não existem em produção ainda.
   contact:
     name: Documentação
     url: https://github.com/joaopaulomirandamatias/plataforma-inteligencia-combustiveis-docs
 
 servers:
-  - url: https://api.example.invalid/v1
-    description: placeholder — definido na implantação
+  - url: https://pic-api-production.up.railway.app
+    description: >
+      Produção. Base na RAIZ do host: as rotas de negócio carregam `/v1` no
+      próprio path e `/saude` responde na raiz.
+  - url: "{origem}"
+    description: >
+      Outros ambientes (local, sandbox). Mesma disposição de paths — só a
+      origem muda.
+    variables:
+      origem:
+        default: http://127.0.0.1:8000
+        description: esquema, host e porta onde o serviço responde.
 
+# Padrão do documento — as operações `implemented` sobrescrevem com
+# `security: []`, porque o runtime público não pede credencial nenhuma.
 security:
   - oidc: []
   - apiKey: []
@@ -28,7 +78,9 @@ tags:
   - name: rankings
     description: Restrito a papel de órgão com escopo
   - name: precos
-    description: Séries e agregados de preços públicos.
+    description: >
+      Série de observações de preço (posto × produto × semana). Agregado de
+      preço não vive aqui — vive na ficha, em `getContextoRegional`.
   - name: webhooks
     description: Assinaturas de notificações para integrações autorizadas.
   - name: datasets
@@ -42,6 +94,7 @@ paths:
       tags: [operacao]
       summary: Saúde do serviço e frescor dos dados
       operationId: getSaude
+      x-estado: implemented
       security: []
       responses:
         "200":
@@ -50,18 +103,24 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Saude" }
 
-  /postos:
+  /v1/postos:
     get:
       tags: [postos]
       summary: Coleção de postos (ficha reduzida)
       operationId: listarPostos
+      x-estado: implemented
+      security: []
       parameters:
         - name: uf
           in: query
           schema: { type: string, minLength: 2, maxLength: 2 }
         - name: municipio
           in: query
-          schema: { type: string, description: nome do município (código IBGE quando houver geocodificação) }
+          description: >
+            Nome do município como publicado pela fonte. NÃO é código IBGE — a
+            PIC não tem código IBGE em nenhuma fonte, e este filtro nunca o
+            aceitou. A entrada é normalizada (caixa alta, sem acento).
+          schema: { type: string }
         - name: q
           in: query
           description: >
@@ -85,11 +144,13 @@ paths:
               schema: { $ref: "#/components/schemas/PaginaPostos" }
         "422": { $ref: "#/components/responses/Problem" }
 
-  /postos/mapa:
+  /v1/postos/mapa:
     get:
       tags: [postos]
       summary: Um ponto por posto, por viewport ou raio
       operationId: listarPostosMapa
+      x-estado: implemented
+      security: []
       description: >
         Retorna **no máximo um item por `posto_id`**: um ponto desenhável por posto.
         O item continua sendo UMA evidência GEO-ANP ou GEO-01 com coordenada
@@ -157,11 +218,13 @@ paths:
               schema: { $ref: "#/components/schemas/MapaPostos" }
         "422": { $ref: "#/components/responses/Problem" }
 
-  /postos/{posto_id}:
+  /v1/postos/{posto_id}:
     get:
       tags: [postos]
       summary: Ficha do posto (campos conforme papel)
       operationId: getPosto
+      x-estado: implemented
+      security: []
       parameters:
         - $ref: "#/components/parameters/PostoId"
         - $ref: "#/components/parameters/AsOf"
@@ -173,11 +236,13 @@ paths:
               schema: { $ref: "#/components/schemas/Posto" }
         "404": { $ref: "#/components/responses/Problem" }
 
-  /postos/{posto_id}/contexto-regional:
+  /v1/postos/{posto_id}/contexto-regional:
     get:
       tags: [postos]
       summary: Preço do posto ao lado da média regional do produto
       operationId: getContextoRegional
+      x-estado: implemented
+      security: []
       description: >
         Para cada produto que o posto precificou na SEMANA ANP mais recente com
         preço dele, devolve o `valor_venda` estruturado do posto e a média do
@@ -224,11 +289,16 @@ paths:
                         amostras: 57
         "404": { $ref: "#/components/responses/Problem" }
 
-  /postos/{posto_id}/historico:
+  /v1/postos/{posto_id}/historico:
     get:
       tags: [postos]
       summary: Linha do tempo consolidada de fatos
       operationId: getHistorico
+      x-estado: planned
+      x-estado-motivo: >
+        Sem implementação. A ficha do posto (`getPosto`) já devolve
+        `fatos_recentes` com fonte e localizador, limitados por tipo; a
+        linha do tempo paginada e completa é card próprio.
       parameters:
         - $ref: "#/components/parameters/PostoId"
         - $ref: "#/components/parameters/AsOf"
@@ -241,7 +311,7 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/PaginaHistorico" }
 
-  /postos/{posto_id}/grupo:
+  /v1/postos/{posto_id}/grupo:
     get:
       tags: [postos]
       summary: Vínculo societário aparente
@@ -249,6 +319,14 @@ paths:
         como `pessoa_id` + nome, jamais CPF; arestas carregam nível T1–T4
         e confiança.
       operationId: getGrupo
+      x-estado: restricted
+      x-estado-motivo: >
+        Não pode ser servida ao público. O vínculo societário tem camada de
+        PESSOA FÍSICA, e o cofre de identidade (ADR-004) mantém pessoa
+        física fora da borda pública — a operação já declara
+        `x-required-role: orgao`, e papel de órgão não existe no runtime
+        anônimo de hoje. Implementar sem o papel seria publicar o que a
+        decisão proíbe.
       x-required-role: orgao
       parameters:
         - $ref: "#/components/parameters/PostoId"
@@ -261,11 +339,17 @@ paths:
               schema: { $ref: "#/components/schemas/GrupoSocietario" }
         "403": { $ref: "#/components/responses/Problem" }
 
-  /rankings/fiscalizacao:
+  /v1/rankings/fiscalizacao:
     get:
       tags: [rankings]
       summary: Ranking de priorização de fiscalização
       operationId: getRanking
+      x-estado: restricted
+      x-estado-motivo: >
+        Não pode ser servida ao público. Score e ranking são restritos a
+        órgão autenticado com escopo por ADR-005, que PROÍBE score em
+        resposta de API sem papel de órgão. Não é permissão faltando: é
+        contrato.
       x-required-role: orgao
       parameters:
         - name: uf
@@ -287,36 +371,146 @@ paths:
               schema: { $ref: "#/components/schemas/PaginaRanking" }
         "403": { $ref: "#/components/responses/Problem" }
 
-  /precos:
+  /v1/precos:
     get:
       tags: [precos]
       summary: Série de preços SLP
       operationId: getPrecos
+      x-estado: implemented
+      security: []
+      description: >
+        Cada item é uma OBSERVAÇÃO INDIVIDUAL — posto × produto × semana ANP —,
+        nunca um agregado. Não há tamanho de amostra a declarar aqui, e o
+        consumidor não deve inferir um: quem tem noção de cobertura é
+        `getContextoRegional`, onde `amostras` conta postos DISTINTOS por trás
+        de uma média.
+
+
+        **Valor nominal.** `valor_venda` sai exatamente como a fonte publicou,
+        na `unidade` que veio junto. A PIC não deflaciona, não converte e não
+        arredonda: escolher índice e competência é decisão de quem consome. Por
+        isso o item carrega a SEMANA DE REFERÊNCIA (`semana_inicio` /
+        `semana_fim`, o mesmo par do contexto regional) — é o campo que permite
+        casar a observação com uma série externa.
+
+
+        **Ausência nunca é zero.** A cobertura do SLP é parcial por desenho:
+        posto sem pesquisa na semana simplesmente NÃO tem linha, e a API não
+        sintetiza nenhuma. `valor_venda` pode vir `null` quando a fonte publicou
+        a observação sem preço de venda — `null` é "não observado", e zero seria
+        um preço. Lista vazia significa "nada no recorte", nunca "preço zero".
+
+
+        **`municipio` e `produto` são o TEXTO da ANP**, não código IBGE e não
+        vocabulário controlado. A entrada é normalizada para a grafia da fonte
+        (caixa alta, sem acento) e o valor efetivamente aplicado volta em
+        `filtros` — cliente que recebe lista vazia vê qual recorte foi usado,
+        em vez de adivinhar se o filtro pegou.
+
+
+        **Semana.** `semana` recorta UMA semana e exige o **domingo** de
+        início (a semana ANP é `[domingo, domingo+7)`); qualquer outro dia é 422
+        `semana_nao_e_domingo`, porque casaria com zero linhas e o vazio seria
+        lido como "não houve preço". `semana_de`/`semana_ate` recortam um
+        período pelo início da semana, inclusive nas duas pontas. Misturar
+        `semana` com qualquer uma das duas é 422 `filtro_semana_ambiguo`.
+        `as_of` é ortogonal: é a viagem no tempo (o que a base sabia), não um
+        filtro de semana.
+
+
+        **Paginação e limite.** Cursor keyset opaco sobre a chave do grão
+        (semana, posto, produto), com ordenação total e `COLLATE "C"` —
+        independente da collation do ambiente (armadilha 8). O `limit` tem
+        limite DURO: pedir acima do teto é 422, nunca um corte silencioso.
       parameters:
-        - name: municipio
-          in: query
-          schema: { type: string, description: código IBGE }
-        - name: semana
-          in: query
-          schema: { type: string, description: "AAAA-Www (semana ANP)" }
         - name: produto
           in: query
-          schema: { type: string }
+          description: >
+            Texto do produto como a ANP publica (ex.: `GASOLINA COMUM`,
+            `ETANOL`). Igualdade exata sobre a grafia normalizada.
+          schema: { type: string, minLength: 1 }
+        - name: uf
+          in: query
+          schema: { type: string, minLength: 2, maxLength: 2 }
+        - name: municipio
+          in: query
+          description: >
+            Nome do município como a ANP publica (ex.: `MACAPA`). NÃO é código
+            IBGE — a PIC não tem código IBGE em nenhuma fonte.
+          schema: { type: string, minLength: 1 }
+        - name: semana
+          in: query
+          description: "Domingo de início da semana ANP (`AAAA-MM-DD`)."
+          schema: { type: string, format: date }
+        - name: semana_de
+          in: query
+          description: Início do período, comparado com o início da semana (inclusive).
+          schema: { type: string, format: date }
+        - name: semana_ate
+          in: query
+          description: Fim do período, comparado com o início da semana (inclusive).
+          schema: { type: string, format: date }
+        - $ref: "#/components/parameters/AsOf"
         - $ref: "#/components/parameters/Cursor"
         - $ref: "#/components/parameters/Limit"
       responses:
         "200":
-          description: Toda página inclui `cobertura` da semana — ausência
-            de posto é falta de coleta, nunca preço zero.
+          description: >
+            Página da série, ordenada por (semana, posto, produto). `filtros`
+            ecoa o recorte efetivamente aplicado — contrato antifalha-silenciosa.
           content:
             application/json:
               schema: { $ref: "#/components/schemas/PaginaPrecos" }
+              example:
+                itens:
+                  - posto_id: "posto-abc123"
+                    produto: "GASOLINA COMUM"
+                    valor_venda: 6.199
+                    unidade: "R$ / litro"
+                    bandeira: "VIBRA"
+                    municipio: "MACAPA"
+                    uf: "AP"
+                    regiao: "N"
+                    semana_inicio: "2026-07-26"
+                    semana_fim: "2026-08-02"
+                    fonte: "F03"
+                    localizador: "precos.csv@sha256:abcd…:42"
+                  - posto_id: "posto-abc123"
+                    produto: "ETANOL"
+                    valor_venda: null
+                    unidade: "R$ / litro"
+                    bandeira: "VIBRA"
+                    municipio: "MACAPA"
+                    uf: "AP"
+                    regiao: "N"
+                    semana_inicio: "2026-07-26"
+                    semana_fim: "2026-08-02"
+                    fonte: "F03"
+                    localizador: "precos.csv@sha256:abcd…:43"
+                proximo_cursor: "MjAyNi0wNy0yNh9wb3N0by1hYmMxMjMfRVRBTk9M"
+                as_of: "2026-08-02T00:00:00Z"
+                versao_snapshot: "cargas/F01:9,F02:2,F03:3"
+                limite: 50
+                filtros:
+                  produto: null
+                  uf: "AP"
+                  municipio: "MACAPA"
+                  semana: "2026-07-26"
+                  semana_de: null
+                  semana_ate: null
+        "400": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
 
-  /webhooks/assinaturas:
+  /v1/webhooks/assinaturas:
     post:
       tags: [webhooks]
       summary: Registrar endpoint assinante
       operationId: criarAssinatura
+      x-estado: planned
+      x-estado-motivo: >
+        Sem implementação. O despachante de webhooks pressupõe cliente
+        identificado (a assinatura pertence a alguém) e segredo HMAC —
+        os dois dependem da autenticação, que ainda não existe.
       parameters:
         - $ref: "#/components/parameters/IdempotencyKey"
       requestBody:
@@ -335,6 +529,11 @@ paths:
       tags: [webhooks]
       summary: Listar assinaturas do cliente
       operationId: listarAssinaturas
+      x-estado: planned
+      x-estado-motivo: >
+        Sem implementação. O despachante de webhooks pressupõe cliente
+        identificado (a assinatura pertence a alguém) e segredo HMAC —
+        os dois dependem da autenticação, que ainda não existe.
       responses:
         "200":
           description: Assinaturas registradas para o cliente.
@@ -344,11 +543,16 @@ paths:
                 type: array
                 items: { $ref: "#/components/schemas/Assinatura" }
 
-  /webhooks/assinaturas/{assinatura_id}:
+  /v1/webhooks/assinaturas/{assinatura_id}:
     delete:
       tags: [webhooks]
       summary: Cancelar assinatura
       operationId: removerAssinatura
+      x-estado: planned
+      x-estado-motivo: >
+        Sem implementação. O despachante de webhooks pressupõe cliente
+        identificado (a assinatura pertence a alguém) e segredo HMAC —
+        os dois dependem da autenticação, que ainda não existe.
       parameters:
         - name: assinatura_id
           in: path
@@ -357,11 +561,15 @@ paths:
       responses:
         "204": { description: Cancelada. }
 
-  /datasets:
+  /v1/datasets:
     get:
       tags: [datasets]
       summary: Datasets abertos versionados
       operationId: listarDatasets
+      x-estado: planned
+      x-estado-motivo: >
+        Sem implementação. Não há publicação de dataset versionado; o que
+        existe hoje são as tabelas de fato servidas pelas rotas de consulta.
       responses:
         "200":
           description: Datasets abertos disponíveis.
@@ -557,11 +765,51 @@ components:
 
     PrecoSemanal:
       type: object
+      required:
+        - posto_id
+        - produto
+        - valor_venda
+        - semana_inicio
+        - semana_fim
+        - fonte
+        - localizador
+      description: >
+        Uma OBSERVAÇÃO de preço: posto × produto × semana ANP. Não é agregado —
+        não tem média, não tem amostra, não tem contagem.
       properties:
-        posto_id: { type: string }
-        semana: { type: string }
-        produto: { type: string }
-        preco: { type: number }
+        posto_id: { type: string, description: "identificador canônico (ADR-003)" }
+        produto: { type: string, description: "texto do produto como a ANP publica" }
+        valor_venda:
+          type: [number, "null"]
+          description: >
+            Preço de venda NOMINAL, na `unidade` da fonte — sem deflação, sem
+            conversão, sem arredondamento. `null` quando a fonte publicou a
+            observação sem preço de venda. `null` é ausência de observação;
+            **zero seria um preço**, e a API nunca o inventa.
+        unidade: { type: [string, "null"], description: "unidade da fonte, ex.: R$ / litro" }
+        bandeira: { type: [string, "null"] }
+        municipio: { type: [string, "null"], description: "nome do município, como publicado pela fonte" }
+        uf: { type: [string, "null"] }
+        regiao: { type: [string, "null"], description: "sigla da região, como publicada pela fonte" }
+        semana_inicio: { type: string, format: date, description: "início da semana ANP [domingo, domingo+7)" }
+        semana_fim: { type: string, format: date, description: "fim exclusivo da semana ANP (domingo+7)" }
+        fonte: { type: string, description: "fonte do preço (F03/SLP)" }
+        localizador: { type: string, description: linhagem até a origem }
+
+    FiltrosPrecos:
+      type: object
+      required: [produto, uf, municipio, semana, semana_de, semana_ate]
+      description: >
+        Recorte EFETIVAMENTE aplicado, já normalizado para a grafia da fonte.
+        Contrato antifalha-silenciosa: quem recebe lista vazia lê aqui qual
+        filtro produziu o vazio, em vez de supor que o filtro não pegou.
+      properties:
+        produto: { type: [string, "null"] }
+        uf: { type: [string, "null"] }
+        municipio: { type: [string, "null"] }
+        semana: { type: [string, "null"], format: date }
+        semana_de: { type: [string, "null"], format: date }
+        semana_ate: { type: [string, "null"], format: date }
 
     PaginaHistorico:
       type: object
@@ -575,10 +823,24 @@ components:
         proximo_cursor: { type: string }
     PaginaPrecos:
       type: object
+      required: [itens, proximo_cursor, as_of, versao_snapshot, limite, filtros]
       properties:
-        itens: { type: array, items: { $ref: "#/components/schemas/PrecoSemanal" } }
-        cobertura: { type: number }
-        proximo_cursor: { type: string }
+        itens:
+          type: array
+          description: >
+            Observações ordenadas por (semana, posto, produto), com `COLLATE "C"`.
+            Vazio significa "nenhuma observação no recorte" — nunca "preço zero".
+          items: { $ref: "#/components/schemas/PrecoSemanal" }
+        proximo_cursor:
+          type: [string, "null"]
+          description: >
+            Cursor keyset opaco da próxima página; `null` na última. Não
+            interprete nem construa cursores — a chave é composta, e cursor de
+            outra coleção é recusado com 400 `cursor_invalido`.
+        as_of: { type: string, format: date-time }
+        versao_snapshot: { type: string, description: "mesma semântica de `Posto.versao_snapshot`" }
+        limite: { type: integer, minimum: 1, maximum: 200, description: "limite DURO aplicado; pedir acima do teto é 422, nunca corte silencioso" }
+        filtros: { $ref: "#/components/schemas/FiltrosPrecos" }
 
     Saude:
       type: object

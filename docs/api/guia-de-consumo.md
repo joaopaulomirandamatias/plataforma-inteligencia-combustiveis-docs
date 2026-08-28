@@ -2,6 +2,15 @@
 
 Regras transversais do contrato [openapi.yaml](openapi.yaml). O contrato é a fonte; este guia explica como usá-lo sem tropeçar.
 
+## Antes de tudo: o que está no ar
+
+Este guia descreve o desenho ALVO — autenticação, quota, expiração de cursor e webhooks incluídos. **O que está executável hoje é o `x-estado` de cada operação no `openapi.yaml`**, e é ele que vale para quem vai integrar agora:
+
+- `implemented` — servida pelo runtime público, **sem autenticação nenhuma**. Filtre por isto para montar sua allowlist.
+- `planned` / `restricted` — declaradas no contrato, ainda **404** no runtime.
+
+A base fica na raiz do host (`servers`); as rotas de negócio carregam `/v1` no próprio path e `/saude` responde na raiz, fora do versionamento.
+
 ## Autenticação
 
 | Cliente | Mecanismo |
@@ -29,12 +38,16 @@ curl -H "Authorization: Bearer $TOKEN" \
 Cursor keyset opaco — **não** interprete nem construa cursores:
 
 ```
-GET /v1/precos?municipio=3550308&limit=100
-→ { "itens": [...], "proximo_cursor": "eyJr..." }
-GET /v1/precos?municipio=3550308&limit=100&cursor=eyJr...
+GET /v1/precos?municipio=MACAPA&limit=100
+→ { "itens": [...], "proximo_cursor": "MjAyNi0w..." }
+GET /v1/precos?municipio=MACAPA&limit=100&cursor=MjAyNi0w...
 ```
 
+`municipio` é o **nome** como a ANP publica, não código IBGE — a PIC não tem código IBGE em nenhuma fonte. A entrada é normalizada (caixa alta, sem acento) e o valor aplicado volta em `filtros`.
+
 Página estável sob escrita concorrente (por isso não há offset). Cursor expira em 24h; expirado → `400` com `codigo: cursor_expirado` — recomece.
+
+> Expiração de cursor é desenho alvo: o runtime de hoje não expira cursor. O que ele já recusa com `400 cursor_invalido` é cursor ilegível ou de outra coleção — a chave de `/v1/precos` é composta (semana, posto, produto) e a de `/v1/postos` não é.
 
 ## Idempotência
 
