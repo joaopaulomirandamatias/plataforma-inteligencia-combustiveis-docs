@@ -893,6 +893,31 @@ components:
               coletado_em: { type: string, format: date-time }
               cargas: { type: integer, description: total de cargas da fonte }
               linhas_carregadas: { type: integer }
+        execucoes:
+          type: array
+          description: >
+            Última TENTATIVA da agenda por fonte — pergunta DIFERENTE de
+            `cargas[].coletado_em`, que só avança quando nasce carga nova. Uma
+            fonte que roda todo dia e não encontra novidade no upstream não gera
+            carga, então `coletado_em` envelhece JUNTO COM A COLETA SAUDÁVEL. Em
+            2026-08-28 isso produziu alarme falso: F03 com carga de 20 dias e
+            cadência declarada de 7 foi reportada como coleta quebrada, quando a
+            agenda rodara e a ANP simplesmente não publicara competência nova.
+            Use `execucoes` para saber se alguém TENTOU; `cargas` para saber se
+            ENTROU dado. Fonte que nunca produziu carga aparece aqui e não lá.
+          items:
+            type: object
+            required: [fonte, ultima_execucao, acao]
+            properties:
+              fonte: { type: string }
+              ultima_execucao: { type: string, format: date-time }
+              acao:
+                type: string
+                enum: [executada, em dia, indisponível, erro, sem espaço]
+                description: >
+                  Veredito da agenda para a fonte naquela execução.
+                  `indisponível` é outage DA FONTE — nada publicado ainda, ou
+                  endereço que deixou de existir — e não falha da execução.
     PostoResumo:
       type: object
       properties:
