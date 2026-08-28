@@ -12,6 +12,8 @@ A porta de entrada decide se a documentação é usada ou ignorada. Trilhas na o
 | DPO / jurídico | **[RIPD](conformidade/lgpd/ripd.md)** (pendências no §8) → [cofre](seguranca/cofre-de-identidade.md) → [trilha de auditoria](seguranca/trilha-de-auditoria.md) → [ADR-004](arquitetura/adr/adr-004-cofre-de-identidade.md) e [ADR-005](arquitetura/adr/adr-005-score-restrito-a-orgaos.md) | 1 tarde |
 | Gestor / orientador | [README](../README.md) → [projeto v1](projeto-v1.md) → [PDF didático](apresentacao/plataforma-v1-didatico.pdf) → ADRs 001/005/006 | 1 hora |
 
+> **Integrador, antes de codificar:** o contrato descreve o desenho alvo, e nem toda operação declarada é servida. Quem decide o que dá para chamar é o `x-estado` de cada operação no [openapi.yaml](api/openapi.yaml) — sua allowlist é `x-estado in (implemented, deprecated)`, e `restricted` nunca entra nela. O [guia de consumo](api/guia-de-consumo.md) marca seção por seção o que está no ar e o que é desenho; hoje a API é anônima, sem autenticação, quota ou rate limit, e [webhooks](api/webhooks.md) inteiro é desenho.
+
 ## O que já existe, por onda
 
 | Onda | Artefatos | Status |
