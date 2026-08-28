@@ -129,6 +129,7 @@ paths:
             Termo com menos de 3 caracteres é RECUSADO (422 `busca_curta`) — `%a%`
             varreria a tabela para devolver ruído que o usuário leria como resposta.
           schema: { type: string, minLength: 3 }
+        - $ref: "#/components/parameters/AsOf"
         - $ref: "#/components/parameters/Cursor"
         - $ref: "#/components/parameters/Limit"
       responses:
@@ -251,8 +252,21 @@ paths:
         a média, nunca contagem de linhas. A média é a média aritmética simples
         de `valor_venda`. O agregado não tem `localizador`: não há origem única a
         apontar; o `localizador` do item é a auditoria do fato de preço do
-        próprio posto. Posto inexistente é 404; posto conhecido sem fato de preço
-        devolve `itens: []`.
+        próprio posto.
+
+
+        **Existência é pergunta as-of.** Existe, para esta rota, o posto com
+        CADASTRO VIGENTE no `as_of` pedido — a mesma pergunta que a ficha
+        (`getPosto`) faz, e a mesma resposta. Sem cadastro vigente no instante,
+        a resposta é `404 posto_nao_encontrado`, inclusive para posto conhecido
+        APENAS por fato de preço: ter sido precificado não faz um posto existir
+        no instante. Assim `itens: []` fica com um significado só — o posto
+        existia ali e não tem preço no recorte —, em vez de acumular também
+        "este posto não existia aqui". Esta é a regra do CONTRATO, e é o que o
+        backend é cobrado a cumprir; enquanto ela não estiver no runtime, a
+        rota ainda pode decidir existência pelo registro atemporal de
+        identificadores e devolver `200` com `itens: []` onde o contrato manda
+        404 — divergência conhecida, com correção em curso no backend.
       parameters:
         - $ref: "#/components/parameters/PostoId"
         - $ref: "#/components/parameters/AsOf"
@@ -601,7 +615,24 @@ components:
       name: as_of
       in: query
       schema: { type: string, format: date-time }
-      description: Consulta as-of (validade). Omitido = snapshot corrente.
+      description: >
+        Consulta as-of bitemporal. O instante é aplicado nos DOIS eixos ao mesmo
+        tempo: a resposta traz a versão que estava VÁLIDA no mundo naquele
+        instante (`validade @> as_of`) **e** que a base JÁ CONHECIA naquele
+        instante (`transacao @> as_of`). Não é só "como o mundo era": é "o que a
+        plataforma sabia sobre o mundo". Omitido = agora, o snapshot corrente.
+
+
+        **Consequência prática.** Existe um PISO DE TRANSAÇÃO — o instante em
+        que a base registrou sua primeira carga. `as_of` anterior a esse piso
+        não devolve o estado antigo: devolve NADA, porque naquele instante a
+        base ainda não conhecia fato nenhum. Coleção responde `200` com lista
+        vazia; recurso único responde `404 posto_nao_encontrado`. Vazio aqui
+        significa "a base ainda não sabia", não "não existia no mundo", e não é
+        erro do cliente nem falha do serviço. O piso é propriedade do AMBIENTE,
+        não deste contrato: muda de base para base e avança quando a base é
+        recarregada — para descobrir o do ambiente em uso, recue o `as_of` até
+        a resposta esvaziar.
     Cursor:
       name: cursor
       in: query
@@ -659,7 +690,6 @@ components:
               fonte: { type: string }
               carga_id: { type: integer }
               coletado_em: { type: string, format: date-time }
-        municipio_ibge: { type: string, description: código IBGE — AUSENTE até a geocodificação (F1); o nome do município nunca é publicado neste campo }
         situacao_cadastral: { type: string, description: fase Entrega — ausente na API mínima }
         selo_transparencia: { type: boolean, description: fase Entrega — ausente na API mínima }
         fatos_recentes:
@@ -888,6 +918,7 @@ components:
         - longitude
         - provedor
         - versao_provedor
+        - resultado_sha256
         - coletado_em
         - fonte
         - localizador
@@ -903,8 +934,16 @@ components:
         distancia_m: { type: [number, "null"], minimum: 0, description: somente no modo raio }
         provedor: { type: string }
         versao_provedor: { type: string }
-        resultado_chave: { type: [string, "null"] }
-        resultado_sha256: { type: string, pattern: "^[0-9a-f]{64}$" }
+        resultado_chave: { type: [string, "null"], description: "chave do resultado no provedor, quando ele publica uma; opcional de propósito — GEO-01 nem sempre tem" }
+        resultado_sha256:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+          description: >
+            Hash do resultado normalizado, SEMPRE presente — é o que endereça a
+            evidência por conteúdo. Participa da ordem determinística que
+            escolhe o ponto do posto (ver `listarPostosMapa`), então uma
+            evidência sem ele não teria como ser escolhida de forma estável.
+            Não confundir com `resultado_chave`, que é opcional.
         coletado_em: { type: string, format: date-time }
         fonte: { type: string, enum: [GEO-01, GEO-ANP] }
         localizador: { type: string, description: linhagem interna da evidência geográfica }
