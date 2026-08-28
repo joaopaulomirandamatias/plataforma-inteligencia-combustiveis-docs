@@ -1,0 +1,50 @@
+{
+  "$comentario": "FONTE CANÔNICA do léxico bloqueado da política de linguagem (ADR-008). Este arquivo é a única cópia normativa. O backend (src/pic/politica.py) e o site (src/lib/politica.ts) mantêm espelhos em suas linguagens, e o CI de cada um falha quando o espelho diverge daqui. Antes deste arquivo existir, as duas camadas eram duas cópias que precisavam concordar por disciplina — e divergiram, com listas e detectores diferentes, sem que nada ficasse vermelho. Este repositório é PÚBLICO: os dois CIs leem este arquivo sem credencial nenhuma.",
+  "versao": 1,
+  "adr": "ADR-008",
+  "prosa": "docs/agentes/politica-de-linguagem.md",
+  "espelhos": [
+    "plataforma-inteligencia-combustiveis:src/pic/politica.py",
+    "plataforma-inteligencia-combustiveis-web:src/lib/politica.ts"
+  ],
+
+  "detector": {
+    "resumo": "O léxico é de RADICAIS sem a vogal final, comparados com fronteira de INÍCIO de palavra e fim livre, sobre texto normalizado sem acento e em minúsculas.",
+
+    "propriedade_1_alcancar_a_flexao_de_genero": {
+      "regra": "Os termos são radicais, sem a vogal final que a flexão troca.",
+      "porque": "Em português o feminino troca a vogal FINAL — 'suspeito' vira 'suspeita' —, então casar por palavra inteira ou por prefixo-com-sufixo deixa metade do idioma passar. Os substantivos deste domínio são majoritariamente femininos (amostra, conduta, prática, análise), e 'amostra suspeita' é justamente a violação mais fácil de alguém escrever. Daí o léxico ser de radicais sem a vogal final: 'suspeit' pega os quatro (suspeito, suspeita, suspeitos, suspeitas).",
+      "consequencia_de_errar": "Uma lista de palavras inteiras é cega ao gênero: metade das violações passa, e a suíte fica verde porque só testaram o masculino."
+    },
+
+    "propriedade_2_nao_disparar_dentro_de_outra_palavra": {
+      "regra": "A comparação exige fronteira de INÍCIO de palavra; o fim é livre, para alcançar a flexão.",
+      "porque": "'aprovado' contém 'provado'. O falso positivo é perigoso pelo remédio que induz: a saída fácil é remover o termo da lista para o teste passar, e aí a política fica mais frouxa por causa de um detector ruim. Daí a fronteira de início de palavra — 'provad' casa 'provado' e 'provada', e não casa dentro de 'aprovado' nem 'reprovado'.",
+      "consequencia_de_errar": "Um `includes` cru acusa a frase legítima 'não é um posto aprovado', e a correção que se oferece sozinha é afrouxar a política."
+    },
+
+    "normalizacao": "Acentos removidos (NFD/NFKD, descartando combinantes) e caixa baixa, dos DOIS lados da comparação. Por isso os radicais abaixo já vêm escritos sem acento.",
+
+    "aviso": "Simplificar o detector para casamento por palavra inteira, ou para substring sem fronteira, reabre um buraco que já custou uma divergência silenciosa entre as duas camadas. Qualquer mudança aqui segue rito de ADR."
+  },
+
+  "termos": [
+    { "radical": "fraude",       "alcanca": "fraude, fraudes" },
+    { "radical": "fraudad",      "alcanca": "fraudado, fraudada" },
+    { "radical": "fraudador",    "alcanca": "fraudador, fraudadora" },
+    { "radical": "fraudulent",   "alcanca": "fraudulento, fraudulenta" },
+    { "radical": "adultera",     "alcanca": "adulterado, adulterada, adulteração" },
+    { "radical": "criminos",     "alcanca": "criminoso, criminosa" },
+    { "radical": "culpad",       "alcanca": "culpado, culpada" },
+    { "radical": "comprovad",    "alcanca": "comprovado, comprovada" },
+    { "radical": "provad",       "alcanca": "provado, provada — NÃO casa 'aprovado' (fronteira de início de palavra)" },
+    { "radical": "certeza",      "alcanca": "certeza" },
+    { "radical": "garantid",     "alcanca": "garantido, garantida" },
+    { "radical": "grupo econom", "alcanca": "grupo econômico, grupo econômica — termo com definição legal" },
+    { "radical": "sonega",       "alcanca": "sonegação, sonegar, sonegado" },
+    { "radical": "mafia",        "alcanca": "máfia" },
+    { "radical": "quadrilh",     "alcanca": "quadrilha, quadrilhas" },
+    { "radical": "irregular",    "alcanca": "irregular, irregulares, irregularidade" },
+    { "radical": "suspeit",      "alcanca": "suspeito, suspeita, suspeitos, suspeitas — o caso que motivou a correção" }
+  ]
+}
