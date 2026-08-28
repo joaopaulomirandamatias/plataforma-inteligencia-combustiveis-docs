@@ -31,7 +31,9 @@ O formato é JSON, e cada termo carrega a flexão que ele alcança (`fraudad` �
 
 Até 2026-08-28 existiam **três** listas — esta prosa, o Python e o TypeScript — e nenhuma batia com as outras. A prosa listava `impossível` (de burlar), que **nunca** esteve em nenhuma das duas listas executáveis; e não listava `adulterado`, `irregular` nem `suspeito`, que estavam nas duas. A unificação feita aqui adotou a lista **executável** como canônica, porque é a que estava efetivamente barrando saída em produção.
 
-`impossível` fica, portanto, como decisão pendente do coordenador: incluí-lo é mudar a política (e derruba os dois espelhos até serem atualizados), não é uma correção de transcrição. Não foi incluído por conta própria.
+`impossível` foi **decidido e incluído** em 2026-08-28, depois da unificação, como radical `impossive`. O radical é estreito de propósito: alcança `impossível` e `impossíveis`, e **não** alcança `impossibilidade` nem `impossibilitado` — essas são fato administrativo que a fonte pode legitimamente publicar, enquanto o que a política recusa é a afirmação de garantia ("impossível de burlar"). Um radical mais curto suprimiria classificação legítima do Sindec, que é o texto sobre o qual o detector roda na borda pública.
+
+Consequência assumida: a saída da plataforma não pode afirmar impossibilidade em nenhum contexto, inclusive os epistemicamente honestos ("impossível determinar a partir desta fonte"). O detector é lexical e não distingue a garantia da ressalva; quando a ressalva for necessária, escreva-a de outra forma ("esta fonte não permite determinar").
 
 Permitidos com uso obrigatoriamente qualificado: `indício` (só com evidência cruzada e caso sobrevivente à refutação) · `não conformidade` (só como fato de fonte) · `divergência` · `padrão atípico` · `prioridade de verificação`.
 

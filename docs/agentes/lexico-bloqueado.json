@@ -40,6 +40,7 @@
     { "radical": "provad",       "alcanca": "provado, provada — NÃO casa 'aprovado' (fronteira de início de palavra)" },
     { "radical": "certeza",      "alcanca": "certeza" },
     { "radical": "garantid",     "alcanca": "garantido, garantida" },
+    { "radical": "impossive",    "alcanca": "impossível, impossíveis — NÃO casa 'impossibilidade' nem 'impossibilitado', que são fato administrativo e não afirmação de garantia" },
     { "radical": "grupo econom", "alcanca": "grupo econômico, grupo econômica — termo com definição legal" },
     { "radical": "sonega",       "alcanca": "sonegação, sonegar, sonegado" },
     { "radical": "mafia",        "alcanca": "máfia" },
