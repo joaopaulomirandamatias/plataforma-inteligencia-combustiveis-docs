@@ -21,7 +21,17 @@ Isso não é modéstia: é a fronteira entre apoio à fiscalização e instrumen
 
 ## Léxico bloqueado em qualquer saída
 
-`fraude` (como afirmação sobre agente identificado) · `fraudador` · `criminoso` · `culpado` · `comprovado/provado` · `certeza` · `impossível` (de burlar) · `garantido` · `grupo econômico` · `sonegação` · `máfia/quadrilha`
+A lista normativa é **[`lexico-bloqueado.json`](lexico-bloqueado.json)**, neste repositório. Ela não é reproduzida aqui de propósito: uma lista em prosa ao lado da lista executável é uma terceira cópia, e cópias divergem — foi exatamente o que aconteceu (ver abaixo).
+
+O arquivo é a **fonte**, não mais uma cópia. O backend (`src/pic/politica.py`) e o site (`src/lib/politica.ts`) mantêm espelhos nas linguagens deles, e o CI de cada um fica vermelho quando o espelho diverge da fonte. Como este repositório é público, os dois CIs leem o arquivo **sem credencial nenhuma** — o arranjo anterior exigia um token de leitura do backend privado, e era ele que travava a promoção do site.
+
+O formato é JSON, e cada termo carrega a flexão que ele alcança (`fraudad` → fraudado, fraudada). O arquivo também carrega, como campo normativo, **por que** o léxico é de radicais sem a vogal final e **por que** a comparação exige fronteira de início de palavra. Não é comentário decorativo: as duas propriedades são o que impede alguém de "simplificar" o detector para casamento por palavra inteira e reabrir o buraco. Mudança segue rito de ADR.
+
+### Divergências herdadas, registradas e não resolvidas aqui
+
+Até 2026-08-28 existiam **três** listas — esta prosa, o Python e o TypeScript — e nenhuma batia com as outras. A prosa listava `impossível` (de burlar), que **nunca** esteve em nenhuma das duas listas executáveis; e não listava `adulterado`, `irregular` nem `suspeito`, que estavam nas duas. A unificação feita aqui adotou a lista **executável** como canônica, porque é a que estava efetivamente barrando saída em produção.
+
+`impossível` fica, portanto, como decisão pendente do coordenador: incluí-lo é mudar a política (e derruba os dois espelhos até serem atualizados), não é uma correção de transcrição. Não foi incluído por conta própria.
 
 Permitidos com uso obrigatoriamente qualificado: `indício` (só com evidência cruzada e caso sobrevivente à refutação) · `não conformidade` (só como fato de fonte) · `divergência` · `padrão atípico` · `prioridade de verificação`.
 

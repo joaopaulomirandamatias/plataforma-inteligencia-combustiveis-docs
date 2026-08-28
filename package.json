@@ -5,7 +5,7 @@
   "scripts": {
     "check": "npm run test:gate && npm run lint:openapi",
     "lint:openapi": "redocly lint docs/api/openapi.yaml",
-    "test:gate": "node --test scripts/testar-gate-openapi.test.mjs"
+    "test:gate": "node --test scripts/testar-gate-openapi.test.mjs scripts/testar-lexico.test.mjs"
   },
   "devDependencies": {
     "@redocly/cli": "2.46.1",
