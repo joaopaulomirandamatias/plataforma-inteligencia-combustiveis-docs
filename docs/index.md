@@ -9,8 +9,13 @@ A porta de entrada decide se a documentação é usada ou ignorada. Trilhas na o
 | Cientista de dados / ML | [backtesting](ml/backtesting.md) → [governança de modelo](ml/governanca-de-modelo.md) → [model cards](ml/modelos/README.md) → [modelo bitemporal](dados/modelo-bitemporal.md) (armadilha nº 3!) | 1ª semana |
 | Fiscal / órgão parceiro | [guia de consumo da API](api/guia-de-consumo.md) → [webhooks](api/webhooks.md) → plano diretor §4 (papéis e escopo) → [PDF didático](apresentacao/plataforma-v1-didatico.pdf) | 1 tarde |
 | Integrador / consumidor da API | [guia de consumo](api/guia-de-consumo.md) → [openapi.yaml](api/openapi.yaml) → [webhooks](api/webhooks.md) → [catálogo de eventos](dados/eventos/README.md) | 1 tarde |
+| Arquiteto de integração | [fronteira com o InteroperaX](integracoes/interoperax.md) → [context map](dominio/context-map.md) → [OpenAPI](api/openapi.yaml) → [eventos](dados/eventos/README.md) | 1 tarde |
 | DPO / jurídico | **[RIPD](conformidade/lgpd/ripd.md)** (pendências no §8) → [cofre](seguranca/cofre-de-identidade.md) → [trilha de auditoria](seguranca/trilha-de-auditoria.md) → [ADR-004](arquitetura/adr/adr-004-cofre-de-identidade.md) e [ADR-005](arquitetura/adr/adr-005-score-restrito-a-orgaos.md) | 1 tarde |
 | Gestor / orientador | [README](../README.md) → [projeto v1](projeto-v1.md) → [PDF didático](apresentacao/plataforma-v1-didatico.pdf) → ADRs 001/005/006 | 1 hora |
+
+## Integrações externas
+
+- [InteroperaX — fronteira de não interferência](integracoes/interoperax.md): define a PIC como sistema de registro do domínio de combustíveis, os contratos permitidos e os gates antes de qualquer integração em runtime.
 
 ## O que já existe, por onda
 

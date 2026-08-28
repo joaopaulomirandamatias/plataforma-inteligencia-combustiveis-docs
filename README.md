@@ -16,6 +16,7 @@ Os dados necessários para responder "este posto é confiável?" já existem —
 | Qualquer pessoa | [`docs/index.md`](docs/index.md) — mapa de leitura por persona |
 | Quem quer o projeto completo | [`docs/projeto-v1.md`](docs/projeto-v1.md) — o documento de projeto v1 na íntegra (setores, fontes, IA, fases, riscos, decisões) |
 | Arquiteto / dev | [`docs/arquitetura/plano-diretor.md`](docs/arquitetura/plano-diretor.md) — o plano diretor completo (C4, DDD, padrões, segurança, APIs) |
+| Arquiteto de integração | [`docs/integracoes/interoperax.md`](docs/integracoes/interoperax.md) — fronteira de não interferência com o InteroperaX |
 | Quem quer as decisões | [`docs/arquitetura/adr/`](docs/arquitetura/adr/) — os 8 ADRs fundadores |
 | Eng. de dados | [`docs/dados/catalogo-fontes.md`](docs/dados/catalogo-fontes.md) — as 10 fontes, riscos e cuidados |
 | Quem chegou agora | [`docs/onboarding/glossario.md`](docs/onboarding/glossario.md) — a linguagem ubíqua |
