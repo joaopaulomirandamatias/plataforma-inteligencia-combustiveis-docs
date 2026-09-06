@@ -1,0 +1,51 @@
+# Porte de .github/workflows/contrato-openapi.yml.
+#
+# Este é o repositório que PUBLICA o contrato que os outros consomem: o
+# backend do PIC aponta `PIC_OPENAPI` para o openapi.yaml daqui. Por isso o
+# gate é curto mas não é opcional — contrato que passa quebrado quebra o CI
+# de quem depende dele, e lá o erro aparece longe da causa.
+#
+# DIFERENÇAS DE PORTE
+#
+# 1. `actions/setup-node` com `node-version: 24.18.0` vira a IMAGEM
+#    `node:24.18.0`. A versão continua pinada; o que muda é onde ela é
+#    declarada. `cache: npm` não tem equivalente — o Woodpecker não tem
+#    cache de dependência embutido, então `npm ci` baixa toda vez. Custa
+#    tempo, não corretude.
+#
+# 2. `$GITHUB_SHA` vira `$CI_COMMIT_SHA`. O passo continua provando que a
+#    árvore em disco é o commit do evento; é isso que impede o gate dizer
+#    "contrato válido" sobre um contrato que não é o do commit.
+
+when:
+  - event: push
+    branch: main
+  - event: pull_request
+    branch: main
+
+steps:
+  - name: provar-sha-do-contrato
+    image: node:24.18.0
+    commands:
+      - |
+        if [ "$(git rev-parse HEAD)" != "$CI_COMMIT_SHA" ]; then
+          echo "ERRO: checkout do contrato diverge do SHA do evento."
+          echo "  arvore: $(git rev-parse HEAD)"
+          echo "  evento: $CI_COMMIT_SHA"
+          exit 1
+        fi
+        echo "contrato conferido em $CI_COMMIT_SHA"
+
+  - name: dependencias
+    image: node:24.18.0
+    commands:
+      # `--ignore-scripts`: o gate não precisa de postinstall, e postinstall
+      # de dependência é superfície de execução que este passo não usa.
+      - npm ci --ignore-scripts --no-audit
+
+  - name: validar-contrato
+    image: node:24.18.0
+    commands:
+      # `check` = test:gate (regressões do próprio gate) + lint:openapi.
+      # A ordem importa: um gate que deixou de detectar aprova em silêncio.
+      - npm run check
