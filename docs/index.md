@@ -10,6 +10,7 @@ A porta de entrada decide se a documentação é usada ou ignorada. Trilhas na o
 | Fiscal / órgão parceiro | [guia de consumo da API](api/guia-de-consumo.md) → [webhooks](api/webhooks.md) → plano diretor §4 (papéis e escopo) → [PDF didático](apresentacao/plataforma-v1-didatico.pdf) | 1 tarde |
 | Integrador / consumidor da API | [guia de consumo](api/guia-de-consumo.md) → [openapi.yaml](api/openapi.yaml) → [webhooks](api/webhooks.md) → [catálogo de eventos](dados/eventos/README.md) | 1 tarde |
 | DPO / jurídico | **[RIPD](conformidade/lgpd/ripd.md)** (pendências no §8) → [cofre](seguranca/cofre-de-identidade.md) → [trilha de auditoria](seguranca/trilha-de-auditoria.md) → [ADR-004](arquitetura/adr/adr-004-cofre-de-identidade.md) e [ADR-005](arquitetura/adr/adr-005-score-restrito-a-orgaos.md) | 1 tarde |
+| DevOps / CI | [CI Woodpecker: migração, gates e rollback](operacao/ci-woodpecker.md) | 1 hora |
 | Gestor / orientador | [README](../README.md) → [projeto v1](projeto-v1.md) → [PDF didático](apresentacao/plataforma-v1-didatico.pdf) → ADRs 001/005/006 | 1 hora |
 
 > **Integrador, antes de codificar:** o contrato descreve o desenho alvo, e nem toda operação declarada é servida. Quem decide o que dá para chamar é o `x-estado` de cada operação no [openapi.yaml](api/openapi.yaml) — sua allowlist é `x-estado in (implemented, deprecated)`, e `restricted` nunca entra nela. O [guia de consumo](api/guia-de-consumo.md) marca seção por seção o que está no ar e o que é desenho; hoje a API é anônima, sem autenticação, quota ou rate limit, e [webhooks](api/webhooks.md) inteiro é desenho.
@@ -25,3 +26,4 @@ A porta de entrada decide se a documentação é usada ou ignorada. Trilhas na o
 | 5 | [backtesting](ml/backtesting.md) · [governança de modelo](ml/governanca-de-modelo.md) · [model cards](ml/modelos/README.md) · [catálogo de agentes](agentes/catalogo.md) · [pipeline do caso](agentes/pipeline-do-caso.md) · [política de linguagem](agentes/politica-de-linguagem.md) · [SLOs](operacao/slo.md) | ✅ *(especificação inicial)* |
 
 **As cinco ondas estão completas.** Os docs da onda 5 nasceram como *especificação inicial* — contratos que a implementação deve honrar — e serão promovidos a documentação de sistema real conforme o código existir. O que resta da [árvore completa](arquitetura/plano-diretor.md) (hexagonal por contexto, `dominio/contextos/`, modelo de ameaças detalhado, observabilidade, IaC, onboarding executável) entra junto com a implementação, porque documentar antes seria inventar.
+

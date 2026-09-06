@@ -1,0 +1,27 @@
+# Woodpecker 3.18.0. GitHub workflows remain until the verified cutover.
+when:
+- event: push
+  branch: main
+- event: pull_request
+  branch: main
+labels:
+  backend: docker
+  platform: linux/amd64
+  pool: phn-test
+clone:
+- name: clone
+  image: woodpeckerci/plugin-git:2.10.0
+  settings:
+    partial: false
+    depth: 50
+    merge-pull-request: true
+    git-user-name: Woodpecker CI
+    git-user-email: ci@localhost
+steps:
+- name: validar
+  image: node:24.18.0-bookworm
+  environment:
+    CI: 'true'
+  commands:
+  - bash .ci/woodpecker/verify-checkout.sh
+  - timeout 10m bash -euc "npm ci --ignore-scripts --no-audit; npm run check"

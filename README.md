@@ -32,3 +32,8 @@ Os dados necessários para responder "este posto é confiável?" já existem —
 ## Licença e uso
 
 Documentação de trabalho para discussão com parceiros institucionais. Nenhuma afirmação de desempenho deve ser citada antes da validação com dados históricos.
+
+
+## Migração do CI para Woodpecker
+
+A configuração candidata está em `.woodpecker/`. Consulte o [runbook canônico](https://github.com/joaopaulomirandamatias/plataforma-inteligencia-combustiveis-docs/blob/main/docs/operacao/ci-woodpecker.md) para recursos, credenciais, validação e corte. A presença dos arquivos não comprova executor ativo nem autoriza declarar o corte concluído.
