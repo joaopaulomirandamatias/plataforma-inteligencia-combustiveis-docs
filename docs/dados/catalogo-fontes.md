@@ -1,6 +1,6 @@
 # Catálogo de Fontes de Dados
 
-Um registro por fonte, no padrão do [Plano Diretor](../arquitetura/plano-diretor.md) (`docs/dados/catalogo-fontes/`). Campos fixos: o que traz, cadência, formato, acesso, papel no sistema, riscos conhecidos e cuidados de ingestão.
+Um registro por fonte, no padrão do [Plano Diretor](../arquitetura/plano-diretor.md) (`docs/dados/catalogo-fontes/`). Campos fixos: o que traz, cadência, formato, acesso, papel no sistema, riscos conhecidos e cuidados de ingestão. O que ainda falta integrar, por órgão e empresa, está no [mapa de integrações](mapa-de-integracoes.md).
 
 > [!warning] Verificação pendente antes da F0
 > URLs, layouts e granularidade marcados com ⚠ precisam de confirmação na fonte oficial antes de escrever o conector — endereços de publicação de dado público brasileiro mudam sem aviso e sem redirect.
