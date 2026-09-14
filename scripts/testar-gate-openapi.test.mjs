@@ -11,7 +11,7 @@ const RAIZ = resolve(import.meta.dirname, "..");
 const REDOCLY = resolve(RAIZ, "node_modules/.bin/redocly");
 const CONFIG = resolve(RAIZ, "redocly.yaml");
 const CONTRATO = resolve(RAIZ, "docs/api/openapi.yaml");
-const WORKFLOW = resolve(RAIZ, ".github/workflows/contrato-openapi.yml");
+const WORKFLOW = resolve(RAIZ, ".woodpecker/contrato-openapi.yml");
 const METODOS = new Set(["get", "put", "post", "delete", "options", "head", "patch", "trace"]);
 
 function refsInternas(valor) {
@@ -155,43 +155,53 @@ test("preflight recusa referência remota antes de qualquer resolução", async 
 });
 
 test("workflow é read-only, pinado e executa o lockfile e o gate", () => {
+  // O gate mudou de forja: o CI agora é o Woodpecker, e este teste passou a
+  // ler `.woodpecker/contrato-openapi.yml`. A PROPRIEDADE vigiada é a mesma —
+  // a configuração do CI não pode ganhar escapatória sem revisão — mas três
+  // asserções não têm equivalente e uma trocou de forma:
+  //
+  //  - `permissions: contents: read` era do GITHUB_TOKEN, que só existe no
+  //    Actions. O Woodpecker não injeta token de forja no pipeline: não há
+  //    permissão a restringir porque não há credencial a vazar. Some.
+  //  - `persist-credentials: false` era do `actions/checkout`. O clone do
+  //    Woodpecker não deixa credencial no .git/config. Some.
+  //  - PINAGEM: no Actions eram `uses:` fixados por SHA de 40 hex. Aqui não há
+  //    ação de terceiro; o que executa é uma IMAGEM. Então a pinagem que este
+  //    teste cobra é de imagem com VERSÃO EXATA — `latest` e tag flutuante
+  //    reabrem exatamente o buraco que o SHA fechava.
   const workflow = parse(readFileSync(WORKFLOW, "utf8"));
-  assert.deepEqual(workflow.permissions, { contents: "read" });
-  assert.deepEqual(workflow.on.pull_request.branches, ["main"]);
-  assert.deepEqual(workflow.on.push.branches, ["main"]);
-  const jobs = Object.entries(workflow.jobs);
-  assert.ok(jobs.length > 0, "workflow precisa ter ao menos um job");
-  const passos = jobs.flatMap(([nome, job]) => {
-    assert.equal(job.if, undefined, `job ${nome} não pode ter condição sem revisão do gate`);
-    assert.ok(
-      job.permissions === undefined || JSON.stringify(job.permissions) === JSON.stringify({ contents: "read" }),
-      `job ${nome} não pode ampliar permissions`,
-    );
-    assert.ok(Array.isArray(job.steps) && job.steps.length > 0, `job ${nome} precisa ter steps`);
-    for (const passo of job.steps) {
-      assert.equal(
-        passo["continue-on-error"],
-        undefined,
-        `step de ${nome} não pode ignorar erro`,
-      );
-      assert.equal(
-        passo.if,
-        undefined,
-        `step de ${nome} não pode ter condição sem revisão do gate`,
-      );
-    }
-    return job.steps;
-  });
-  const actions = passos.filter((passo) => passo.uses).map((passo) => passo.uses);
-  assert.deepEqual(actions, [
-    "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
-    "actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38",
-  ]);
-  assert.ok(actions.every((action) => /@[0-9a-f]{40}$/.test(action)));
-  for (const passo of passos.filter((item) => item.uses?.startsWith("actions/checkout@"))) {
-    assert.equal(passo.with?.["persist-credentials"], false);
+
+  // Dispara em push e em pull_request, e só em main — igual ao `on:` antigo.
+  const gatilhos = workflow.when;
+  assert.ok(Array.isArray(gatilhos) && gatilhos.length > 0, "workflow precisa declarar `when`");
+  for (const gatilho of gatilhos) {
+    assert.equal(gatilho.branch, "main", "gate só pode disparar em main");
   }
-  const comandos = passos.map((passo) => passo.run).filter(Boolean).join("\n");
+  assert.deepEqual(
+    gatilhos.map((gatilho) => gatilho.event).sort(),
+    ["pull_request", "push"],
+    "gate precisa cobrir push E pull_request",
+  );
+
+  const passos = workflow.steps;
+  assert.ok(Array.isArray(passos) && passos.length > 0, "workflow precisa ter passos");
+
+  for (const passo of passos) {
+    // `when` no passo é o equivalente do `if:` do Actions: condição que faz o
+    // gate deixar de rodar sem ninguém notar.
+    assert.equal(passo.when, undefined, `passo ${passo.name} não pode ter condição sem revisão do gate`);
+    // `failure: ignore` é o `continue-on-error`: o passo fica vermelho e o
+    // pipeline segue verde.
+    assert.equal(passo.failure, undefined, `passo ${passo.name} não pode ignorar erro`);
+    // Imagem com versão exata. Recusa `node`, `node:latest` e `node:24`.
+    assert.match(
+      passo.image,
+      /^[a-z0-9./-]+:\d+\.\d+\.\d+$/,
+      `passo ${passo.name} precisa de imagem pinada em versão exata (veio "${passo.image}")`,
+    );
+  }
+
+  const comandos = passos.flatMap((passo) => passo.commands ?? []).join("\n");
   assert.match(comandos, /npm ci --ignore-scripts --no-audit/);
   assert.match(comandos, /npm run check/);
 });
