@@ -20,6 +20,7 @@ Reprovações PMQC (rótulo F2) na v1; erro metrológico IPEM (rótulo F1) quand
 | Cadastro | idade do CNPJ, mudanças recentes, situação | — |
 | Contexto | densidade de risco na vizinhança, porte do município | Não pode virar proxy puro de região pobre — ver fairness |
 | Reclamações | volume/teor (NLP) | Contexto, jamais dominante — relato não é fato |
+| Metrológico *(fase IPEM)* | ano de fabricação do instrumento, número de intervenções, oficina executora | Só com a F09; a candidata F11 dá o universo de oficinas, não a relação com o posto |
 
 ## Exclusões anti-vazamento
 
@@ -28,6 +29,10 @@ Resultado de inspeção da própria janela-alvo; qualquer feature com `validade`
 ## Saída
 
 `AvaliacaoDeRisco {score, intervalo, cobertura, razoes_topk}` — sem cobertura mínima, **não emite** (evento [`LimiarDeRiscoCruzado`](../../dados/eventos/limiar-de-risco-cruzado.md)).
+
+## Métrica operacional de referência
+
+O [projeto v1](../../projeto-v1.md) pede precision@k **comparado com o critério atual do órgão**. Os dois números de chão existem desde 2026-09 ([fontes-inmetro](../../dados/fontes-inmetro.md), seção "Leitura de campo"): na fiscalização metrológica de rotina do Ipem-SP, **0,17 auto de infração por posto fiscalizado**; nas operações com seleção de alvos por cruzamento de fontes, **1,81**. O ranking é medido contra as duas referências — superar a rotina é o mínimo; a comparação honesta é com o método de seleção que o órgão já pratica.
 
 ## Fairness e cobertura
 

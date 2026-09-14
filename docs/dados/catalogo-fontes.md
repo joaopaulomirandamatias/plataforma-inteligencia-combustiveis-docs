@@ -92,6 +92,7 @@ Decisão da F0-01, arbitrada de novo na verificação da F0-02: **tolerante a co
 | Papel | **Sinal de contexto oficial** na linha do tempo; não é rótulo nem prova de responsabilidade do fornecedor |
 | Riscos | Viés de cobertura e de quem procura o Procon; categorias podem conter linguagem acusatória; o portal pode remover ou substituir recursos; o arquivo aberto contém atributos do consumidor |
 | Cuidados | Descobrir o recurso pelo catálogo, validar esquema e preservar a zona bruta; vincular **somente por CNPJ exato**, nunca por nome aproximado; persistir no fato apenas data e classificações do atendimento — sexo, faixa etária, CEP e texto de consumidor não entram; a borda pública aplica a política de linguagem |
+| Situação *(verificado em 2026-09-14)* | `dados.mj.gov.br` **não resolve (NXDOMAIN)** desde pelo menos 2026-08-28; a agenda classifica a fonte como `indisponível`, sem contar como erro da execução. Candidato a substituto: os [dados abertos do consumidor.gov.br](https://www.consumidor.gov.br/pages/dadosabertos/externo/) (responde 200; layout e granularidade por CNPJ ainda **não verificados**) |
 
 ## F07 — IBGE / bases geográficas
 
@@ -116,6 +117,7 @@ Decisão da F0-01, arbitrada de novo na verificação da F0-02: **tolerante a co
 | Papel | RAG regulatório; vigência aplicável a cada fato (bitemporalidade da regra) |
 | Riscos | Consolidação manual sujeita a erro; ato que altera ato exige encadeamento |
 | Cuidados | Versionar por vigência, nunca sobrescrever; resposta do RAG sempre com citação + data; mudança de limite (ex.: E30/B15) dispara `AtoNormativoPublicado` → reavaliação de modelos |
+| Recurso aberto do Inmetro *(verificado em 2026-09-14)* | **SIL** — `https://dados.inmetro.gov.br/sil/SIL.csv` (regulamentos metrológicos e de avaliação da conformidade) e `SIL-PAM.csv` (**Portarias de Aprovação de Modelo**; CSV UTF-16, `;`, 18,9 MB, diário): 8.344 portarias, **664 sobre bombas medidoras** (273 em vigor). É a dimensão marca/modelo de instrumento para quando a F09 chegar — detalhe em [fontes-inmetro](fontes-inmetro.md) |
 
 ## F09 — IPEM / Inmetro · Verificações metrológicas *(fase 2 — convênio)*
 
@@ -128,6 +130,9 @@ Decisão da F0-01, arbitrada de novo na verificação da F0-02: **tolerante a co
 | Papel | **Gabarito metrológico** (rótulo F1) — a fonte mais valiosa do sistema; sem ela, detecção volumétrica não valida |
 | Riscos | Instrumento jurídico demorado; qualidade/completude desconhecidas até a primeira carga |
 | Cuidados | O pedido é específico: **série histórica com erro medido por bico**; modelar desde já o esquema-alvo para que a chegada seja carga, não redesenho |
+| O que já é público *(verificado em 2026-09-14)* | Nada do gabarito. A consulta pública do PSIE cobre oito tipos de instrumento e **bomba medidora não está entre eles**; o dados.gov.br não tem verificação por estabelecimento; autos de infração, intervenções por instrumento e a relação posto ↔ oficina ficam no SGI, sigiloso pelo inventário do PDA. O que existe aberto é a candidata F11 (abaixo) e a dimensão SIL-PAM da F08 — [fontes-inmetro](fontes-inmetro.md) |
+| Pedido do convênio, afiado pelo método de campo | Além do erro por bico: resultado, data, **oficina executora**, **ano de fabricação** e **número de intervenções** por instrumento, e os **preços registrados em campo no SGI** (existem e não são explorados). Em troca, a plataforma devolve o comparativo regional de preço que o SGI não produz |
+| Janela institucional | O próximo Plano de Dados Abertos do Inmetro (dez/2026 – dez/2028) está em elaboração e tem consulta pública de priorização — pedir ali a abertura das verificações de bombas, agregada por CNPJ. Alternativa paralela: pedido via LAI de extração agregada |
 
 ## F10 — SEFAZ · NFC-e *(fase 3 — restrito)*
 
@@ -141,6 +146,21 @@ Decisão da F0-01, arbitrada de novo na verificação da F0-02: **tolerante a co
 | Riscos | Sigilo fiscal; volume alto (primeira fonte genuinamente streaming — gatilho do ADR-006 junto com telemetria) |
 | Cuidados | Nenhuma ingestão sem base legal escrita; desenho de minimização antes do primeiro byte |
 
+## F11 — Inmetro / RBMLQ-I · PSIE: oficinas permissionárias *(candidata)*
+
+| Campo | Valor |
+|---|---|
+| O que traz | Por UF: razão social, endereço, CEP, município, telefone, e-mail, número de autorização, **credenciamentos por tipo de serviço com data de validade** e nomes dos mecânicos |
+| Cadência | Mensal (metadados do PSIE); arquivos regenerados em 2026-06-17 |
+| Formato *(verificado em 2026-09-14)* | JSON e XML — `https://servicos.rbmlq.gov.br/dados-abertos/{UF}/oficinas.json` |
+| Acesso *(verificado em 2026-09-14)* | Público, sem chave; o diretório não lista (403), mas o arquivo responde para toda UF testada (SP, MG, RJ, PR, RS, BA) |
+| Medido (SP) | 881 oficinas; **137 credenciadas em "BOMBA MEDIDORA DE COMBUSTÍVEIS LÍQUIDOS"** em 54 municípios; validades em 2026 (50) e 2027 (87) |
+| Semântica temporal | Snapshot mensal com validade por credenciamento; a oficina **some** da lista quando a autorização é cassada — a ausência entre snapshots é o sinal, por isso bitemporal desde a primeira carga |
+| Papel | Único dado aberto do Inmetro no nível de estabelecimento: universo, geografia e vigência de quem pode intervir em bomba medidora; cruzamento posto ↔ oficina executora quando a F09 chegar |
+| Riscos | **Sem CNPJ** (chave: autorização + razão social + endereço → resolução de entidade por nome e endereço); nomes de mecânicos são dado pessoal de finalidade pública — não expor na borda pública |
+| Cuidados | Guardar o JSON bruto com `sha256`; tratar `[]` como "órgão delegado não publica", não como "não há oficinas" (o anexo veículo-tanque, no mesmo host, vem vazio para SP, MG, RJ e BA) |
+| Anexos no mesmo host | `veiculotanque.json` (frota de veículos-tanque verificada — lado da distribuição, cobertura parcial) e o consolidado *Planejamento e Execução* por UF (R$ previsto × realizado em bombas — contexto, nunca feature por posto). Detalhe em [fontes-inmetro](fontes-inmetro.md) |
+
 ---
 
 ## Matriz-resumo
@@ -152,8 +172,9 @@ Decisão da F0-01, arbitrada de novo na verificação da F0-02: **tolerante a co
 | F03 | ANP SLP | Público | Semanal | Preço anômalo | v1 |
 | F04 | ANP autuações | Público ⚠ | Irregular | Reincidência | v1 |
 | F05 | Receita CNPJ | Público | Mensal | Grafo societário | v1 — **arquivar já** |
-| F06 | Consumidor.gov/Procon | Público | Diária | Sinal precoce | v1 |
+| F06 | Sindec / Consumidor.gov | Público ⚠ *(host do Sindec fora do ar)* | Trimestral | Sinal precoce | v1 |
 | F07 | IBGE | Público | Anual | Território | v1 |
 | F08 | Normativo | Público | Diária | Vigências/RAG | v1 |
 | F09 | IPEM | Convênio | — | Gabarito metrológico | 2 |
 | F10 | SEFAZ NFC-e | Restrito | Contínua | Reconciliação fiscal | 3 |
+| F11 | Inmetro PSIE · oficinas permissionárias | Público | Mensal | Quem intervém em bomba | candidata |
