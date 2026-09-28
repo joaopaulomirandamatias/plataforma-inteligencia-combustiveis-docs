@@ -1,6 +1,6 @@
 # Mapa de integrações — o que falta, por órgão e empresa
 
-*Verificação de existência na fonte em 2026-09-14. Convenção do [catálogo de fontes](catalogo-fontes.md): ✔ verificado na fonte (página ou recurso existe; o layout só quando dito) · ⚠ conhecido, ainda não verificado · 🔒 restrito (convênio, contrato, adesão ou base legal). Versão para compartilhar: [PDF](../apresentacao/mapa-de-integracoes.pdf).*
+*Verificação de existência na fonte em 2026-09-14. Convenção do [catálogo de fontes](catalogo-fontes.md): ✔ verificado na fonte (página ou recurso existe; o layout só quando dito) · ⚠ conhecido, ainda não verificado · 🔒 restrito (convênio, contrato, adesão ou base legal). Versão para compartilhar: [PDF](../apresentacao/mapa-de-integracoes.pdf). Página e PDF saem do mesmo gerador: `scripts/gerar-mapa-de-integracoes.py`.*
 
 ## As seis perguntas que uma plataforma completa responde
 
@@ -30,17 +30,18 @@ No ar, com API pública e site: F01 cadastro, F02 PMQC, F03 preços e GEO-ANP. C
 | **ANP** | Sistema de Transparência na Distribuição (STD, Decreto 12.930/2026): operações agregadas a cada 14 dias | Painel dinâmico | Público — página existe; dados brutos a confirmar ⚠ | Contexto de oferta sob regime emergencial | Não |
 | **ANP** | SIMP — movimentação de produtos declarada por cada agente | Convênio | Restrito 🔒 | Volume por distribuidora e base; reconciliação com o varejo | Não |
 | **ANP** | Reclamações e denúncias contra postos (canal próprio) | Não estruturado; LAI agregada | Restrito 🔒 | Sinal precoce | Não |
-| **Inmetro / RBMLQ-I (Ipem)** | Verificações de bomba por bico: erro, resultado, lacres, oficina executora, intervenções, ano de fabricação; autos de infração; preços de campo do SGI | Convênio; LAI agregada por CNPJ; consulta pública do PDA 2026–2028 | Restrito — confirmado ausente do público 🔒 | Gabarito metrológico — a fonte mais valiosa do sistema | Catalogada (F09) |
+| **Inmetro / RBMLQ-I (Ipem)** | Verificações de bomba por bico: erro, resultado, lacres, oficina executora, intervenções, ano de fabricação; autos de infração; preços de campo do SGI | Convênio; LAI agregada por CNPJ; consulta pública do PDA 2026–2028 | Restrito — ausência do público confirmada duas vezes: na tela e na wiki do Inmetro 🔒 | Gabarito metrológico — a fonte mais valiosa do sistema; o pedido já tem nomes de campo e de relatório (CPL5095, CVR5070, CVR5080, COF5010) | Catalogada (F09) |
 | **Inmetro / RBMLQ-I** | Oficinas permissionárias (JSON por UF); Portarias de Aprovação de Modelo (SIL-PAM); consolidado de execução por UF | Pull mensal / diário | Público — medido na fonte ✔ | Quem intervém em bomba; dimensão marca/modelo; intensidade fiscalizatória | F11 candidata; F08 |
+| **Inmetro / RBMLQ-I — wiki** | Base de conhecimento interna publicada: SGI, SGImóvel, Cronotacógrafo e PSIE tela a tela — campos, códigos e relatórios nomeados. Metadado, não dado: nenhum registro de estabelecimento | Leitura; API do MediaWiki | Público — verificado em 2026-09-28; GNU FDL 1.3 ✔ | Escreve o pedido da F09 no vocabulário do sistema e nomeia o que pedir como série; CPL5095 já compara a operação dirigida com o serviço subsequente do mesmo período, e OF2010 traz o CNPJ e o motivo do descredenciamento que faltam à F11 | Referência (não vira conector) |
 | **Inmetro / PSIE** | Validação de certificado de verificação por número | Consulta pontual | Público — existe; comportamento não testado ⚠ | Posto idôneo sobe o próprio certificado e a plataforma confere — gabarito de baixo para cima | Não |
 | **Receita Federal** | Dados Públicos CNPJ: empresas, estabelecimentos, QSA, situação, CNAE, Simples/MEI | Dump mensal | Público ✔ | Grafo societário — só o presente | Conector existe (F05); carga cheia desligada |
 | **Receita Federal** | CPF completo do sócio; NF-e modelo 55 (compras do posto à distribuidora) | Via órgão parceiro; base legal escrita | Restrito 🔒 | Identidade da pessoa; volume comprado por posto | Não — o RIPD prevê a dimensão PF |
 | **Senacon / MJ** | Sindec (Procons) e consumidor.gov.br, por CNPJ | Pull do catálogo | Sindec: host não resolve. consumidor.gov.br: página existe; layout não lido ⚠ | Sinal precoce de reclamação | F06 quebrada; substituto a verificar |
 | **CGU** | CEIS, CNEP e CEPIM — empresas sancionadas ou inidôneas, por CNPJ | Dados abertos do Portal da Transparência | Público — página de download existe; layout não lido ✔ | Flag de conformidade administrativa | Não |
 | **SENATRAN** | Frota de veículos por município e tipo | Dados abertos mensais | Público — página existe; layout não lido ✔ | Denominador de demanda: litros esperados por município | Não |
-| **IBGE** | Malha municipal, população, renda, PIB municipal | Anual | Público  | Território; estratos de fairness | Catalogada (F07) |
-| **Imprensa Nacional** | Atos normativos ANP e Inmetro (DOU) | Varredura diária | Público  | RAG regulatório; vigência de cada regra | Catalogada (F08) |
-| **CADE** | Processos de cartel em revenda de combustíveis | Documental, não estruturado | Público  | Contexto de mercado local — preço uniforme não é concorrência | Não — contexto |
+| **IBGE** | Malha municipal, população, renda, PIB municipal | Anual | Público | Território; estratos de fairness | Catalogada (F07) |
+| **Imprensa Nacional** | Atos normativos ANP e Inmetro (DOU) | Varredura diária | Público | RAG regulatório; vigência de cada regra | Catalogada (F08) |
+| **CADE** | Processos de cartel em revenda de combustíveis | Documental, não estruturado | Público | Contexto de mercado local — preço uniforme não é concorrência | Não — contexto |
 
 ## 2. Órgãos estaduais
 
@@ -49,7 +50,7 @@ No ar, com API pública e site: F01 cadastro, F02 PMQC, F03 preços e GEO-ANP. C
 | **SEFAZ (cada UF)** | NFC-e modelo 65 — cada venda na bomba: volume, produto, valor, hora | Base legal escrita (sigilo fiscal) | Restrito 🔒 | Registro autoritativo de venda; reconciliação comprado × vendido × capacidade de tanque | Catalogada (F10, fase 3) |
 | **SEFAZ-SP e congêneres** | Cassação da inscrição estadual de postos por combustível fora de especificação (lei estadual) | DOE e lista pública | Público — endereço não localizado nesta verificação ⚠ | Rótulo público forte em SP, sem convênio | Não |
 | **SEFAZ / Sintegra** | Situação cadastral da inscrição estadual por CNPJ | Consulta pontual | Público por consulta ⚠ | Posto com IE suspensa ou cassada operando | Não |
-| **Procons estaduais** | Reclamações e rankings próprios | PDF / HTML | Público, pouco estruturado  | Complemento à F06 | Não |
+| **Procons estaduais** | Reclamações e rankings próprios | PDF / HTML | Público, pouco estruturado | Complemento à F06 | Não |
 | **Órgãos ambientais (CETESB e congêneres)** | Licença de operação; idade e troca de tanques subterrâneos | Consulta pública | Público ⚠ | Integridade física; posto operando sem licença | Não |
 | **Corpo de Bombeiros** | AVCB vigente | Consulta | Público ⚠ | Conformidade de segurança — baixa prioridade | Não |
 | **Juntas Comerciais** | Histórico societário — o que a Receita não dá (só o presente) | Certidão paga ou convênio | Pago 🔒 | Rotatividade societária real | Não |
@@ -61,7 +62,7 @@ No ar, com API pública e site: F01 cadastro, F02 PMQC, F03 preços e GEO-ANP. C
 | **Distribuidoras / bandeiras** | Contratos de bandeira e desembandeiramentos; volume entregue por posto; auditorias de qualidade da rede; lacres de tanque | API ou arquivo por contrato | Parceria — clientes pagantes no projeto v1 🔒 | Volume do lado da oferta sem esperar a SEFAZ; monitoramento da rede | Não |
 | **Cartões-frota (Ticket Log/Edenred, Sem Parar, Alelo Frota e outros)** | Transações na bomba: litros, preço, CNPJ do posto, placa, hora | API por contrato | Parceria 🔒 | O sinal privado mais rico de quantidade: abastecimento acima da capacidade do tanque do veículo é evidência direta de bomba fora de medida | Não |
 | **Telemetria embarcada (Sascar, Omnilink e outros)** | Nível de tanque e GPS por veículo | Stream por contrato | Parceria 🔒 | Litros recebidos × litros pagos por abastecimento — gatilho do ADR-006 (streaming) | Não |
-| **Instituto Combustível Legal, IBP, sindicatos** | Estudos, canal de denúncia, estimativas setoriais | Documental; parceria | Misto  | Legitimidade setorial; calibração de estimativas | Não |
+| **Instituto Combustível Legal, IBP, sindicatos** | Estudos, canal de denúncia, estimativas setoriais | Documental; parceria | Misto | Legitimidade setorial; calibração de estimativas | Não |
 | **Petrobras e demais produtores** | Preço de venda às distribuidoras por base e data | Página pública | Público — página existe; estrutura não lida ⚠ | Primeiro elo da cadeia de custo | Não |
 | **Apps de preço e de mapas** | Preço promocional relatado por consumidores | API comercial | Pago, termos restritivos 🔒 | Terceiro critério do método de seleção de alvos do Ipem-SP | Lacuna registrada |
 
@@ -78,14 +79,14 @@ No ar, com API pública e site: F01 cadastro, F02 PMQC, F03 preços e GEO-ANP. C
 
 | Órgão / empresa | Dados | Integração | Acesso | Destrava | Na plataforma hoje |
 |---|---|---|---|---|---|
-| **OpenStreetMap / malha viária** | Rotas e vias | Público (ODbL) | Público  | Setor de frotas: posto na rota | Não |
-| **Base de CEP (ViaCEP / DNE)** | Normalização de endereço | API pública ou base paga | Público / pago  | Resolução de entidade — a F11 não tem CNPJ | Não |
+| **OpenStreetMap / malha viária** | Rotas e vias | Público (ODbL) | Público | Setor de frotas: posto na rota | Não |
+| **Base de CEP (ViaCEP / DNE)** | Normalização de endereço | API pública ou base paga | Público / pago | Resolução de entidade — a F11 não tem CNPJ | Não |
 | **Catálogo de veículos** | Capacidade de tanque por modelo | Referência | Público ⚠ | Regra: abasteceu mais que o tanque | Não |
-| **RAIS / CAGED** | Empregados por CNPJ | Agregado público; microdado restrito | Misto  | Porte do posto | Não |
+| **RAIS / CAGED** | Empregados por CNPJ | Agregado público; microdado restrito | Misto | Porte do posto | Não |
 
 ## Ordem de prioridade
 
-1. **Ipem/Inmetro por convênio (F09)** — sem ele não há gabarito de quantidade; o pedido já está afiado no catálogo.
+1. **Ipem/Inmetro por convênio (F09)** — sem ele não há gabarito de quantidade; o pedido já está afiado no catálogo e escrito nos nomes do próprio SGI.
 2. **SEFAZ: NF-e e NFC-e (F10)** — a reconciliação comprado × vendido é o único fechamento volumétrico autoritativo; exige base legal antes do primeiro byte.
 3. **Cartões-frota** — o mesmo fechamento pelo lado privado, sem sigilo fiscal, com o sinal “acima da capacidade do tanque”; é também o setor de frotas pagando.
 4. **ANP fiscalização e multas (F04), CGU CEIS/CNEP, SEFAZ-SP cassações** — três rótulos públicos — os dois primeiros com páginas e recursos confirmados nesta verificação.
