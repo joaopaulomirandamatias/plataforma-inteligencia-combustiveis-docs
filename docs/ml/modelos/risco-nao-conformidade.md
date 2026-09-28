@@ -32,7 +32,7 @@ Resultado de inspeção da própria janela-alvo; qualquer feature com `validade`
 
 ## Métrica operacional de referência
 
-O [projeto v1](../../projeto-v1.md) pede precision@k **comparado com o critério atual do órgão**. Os dois números de chão existem desde 2026-09 ([fontes-inmetro](../../dados/fontes-inmetro.md), seção "Leitura de campo"): na fiscalização metrológica de rotina do Ipem-SP, **0,17 auto de infração por posto fiscalizado**; nas operações com seleção de alvos por cruzamento de fontes, **1,81**. O ranking é medido contra as duas referências — superar a rotina é o mínimo; a comparação honesta é com o método de seleção que o órgão já pratica.
+O [projeto v1](../../projeto-v1.md) pede precision@k **comparado com o critério atual do órgão**. Os dois números de chão existem desde 2026-09 ([fontes-inmetro](../../dados/fontes-inmetro.md), seção "Leitura de campo"): na fiscalização metrológica de rotina do Ipem-SP, **0,17 auto de infração por posto fiscalizado**; nas operações com seleção de alvos por cruzamento de fontes, **1,81**. O ranking é medido contra as duas referências — superar a rotina é o mínimo; a comparação honesta é com o método de seleção que o órgão já pratica. Essa comparação não precisa ser inventada: o SGI já a produz no relatório `CPL5095`, que põe lado a lado o resultado da operação dirigida e o **serviço subsequente do mesmo período** ([fontes-inmetro](../../dados/fontes-inmetro.md#dicionário-de-dados-do-sgi--a-wiki-pública-do-inmetro)) — pedir a série desse relatório é mais barato, e mais defensável, do que reconstruir o denominador.
 
 ## Fairness e cobertura
 
