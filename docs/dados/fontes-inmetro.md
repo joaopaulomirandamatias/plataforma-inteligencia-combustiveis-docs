@@ -72,9 +72,45 @@ O inventário do PDA marca o **SGI** (Sistema de Gestão Integrada — "planejam
 | Medido | 8.344 portarias; **664 sobre bombas medidoras** (273 em vigor, 291 revistas, 99 revogadas); 2023–2026: 8, 10, 8, 5 por ano; inclui atos sobre "sistema de gerenciamento" e "concentrador de bombas" |
 | Papel | Tabela de marca/modelo aprovado — o que dá sentido a "modelo do instrumento" quando a F09 trouxer o instrumento verificado |
 
+## Dicionário de dados do SGI — a wiki pública do Inmetro
+
+*Verificada em 2026-09-28 em `https://wiki.inmetro.rs.gov.br`.*
+
+A base de conhecimento interna do Inmetro está publicada na web: MediaWiki 1.30.0, **10.648 páginas, 31.287 edições, 55 usuários**, última alteração em 2026-09-22, sob GNU FDL 1.3. Documenta os quatro sistemas do dia a dia — **SGI, SGImóvel, Cronotacógrafo e PSIE** — tela a tela, com os campos, os códigos e os relatórios nomeados (`OF2010`, `CVR5070`, `CPL5095`, …).
+
+**Não é fonte de dados: é fonte de metadados.** Não há um único registro de estabelecimento ali — as ocorrências de "CNPJ" e "razão social" são nomes de campo de tela, não valores. Por isso ela não vira conector; ela entra no catálogo como **referência de esquema e de vocabulário**, e o que ela muda é o pedido da [F09](catalogo-fontes.md).
+
+### O que ela confirma
+
+O guia *"Como Consultar Instrumentos no PSIE?"* enumera os tipos disponíveis na consulta pública: balança dinâmica, balança rodoviária, etilômetro, esfigmomanômetro, medidor de velocidade, taxímetro, veículo-tanque e medidor de umidade de grãos. **Bomba medidora não está entre eles** — agora documentado pelo próprio operador, e não apenas medido por mim no formulário em 2026-09-14. (Naquela medição o oitavo tipo aparecia como "balança rodoferroviária"; as duas listas têm oito tipos e nenhuma traz bomba.)
+
+### O vocabulário do sistema, que o pedido do convênio passa a usar
+
+| Campo no SGI | Valores documentados |
+|---|---|
+| Tipo de serviço | `0` periódica · `2` reparo · `13` fiscalização |
+| **Resultado da fiscalização** | `4` aprovado · `5` reprovado · `6` interditado · `7` apreendido · `10` não verificado · `11` excluído |
+| Espécie do instrumento | `BO` = bomba medidora de combustível |
+| Tipo de credenciamento da permissionária | `2` = bomba medidora de combustíveis líquidos |
+| Documentos de selagem | etiqueta de reparo; lacres por código (`276` verde, `278` vermelho, `279` amarelo, `1282` marca de selagem azul/PSIE) |
+| Origem do dado | coletor de campo (app SGI Fisc. Inmetro, Android) sincronizado com o SGI |
+
+### Dois achados que mudam decisões
+
+**`CPL5095` — "Resultados de Operações Especiais".** O SGI já produz, por operação especial: o resultado da operação; o **resultado em serviço subsequente no mesmo período** — isto é, o grupo de comparação; as ocorrências encontradas em cada ação, inclusive as que não geram auto de infração; os municípios e estabelecimentos visitados, notificados e autuados; e meta × executado. Exportável em XML. A consequência está no [model card de risco](../ml/modelos/risco-nao-conformidade.md): a comparação "operação dirigida × rotina", que sustenta os números 0,17 e 1,81 da seção anterior, **já é relatório institucional** — o pedido pode ser a série do `CPL5095`, e não uma extração desenhada do zero.
+
+**`OF2010` — cadastro de oficina permissionária.** A tela guarda o que falta no JSON aberto da [F11](catalogo-fontes.md): **CNPJ/CPF do proprietário**, número de autorização, instrumentos que a permissionária pode verificar, data de credenciamento e **data e motivo do descredenciamento**, com processo e vigência. É exatamente a lacuna registrada na ficha — hoje a ausência entre dois snapshots é o único sinal de que uma autorização caiu, e sem chave fiscal o vínculo com o posto depende de nome e endereço.
+
+### Ressalvas de uso
+
+- **Documentação, não norma.** Quem define regra é a portaria ou o RTM; a wiki descreve como o sistema implementa. Serve para desenhar pedido e esquema, não para afirmar obrigação.
+- **Qualidade desigual.** Há páginas duplicadas e numeração divergente para a mesma tela (`3.1.131.1.3` e `3.1.13.1.1.9`). Tratar como indício a confirmar.
+- **Volátil.** É wiki interna publicada: o que for usado precisa de cópia datada, com a revisão citada.
+- **Licença GNU FDL 1.3** — citar e referenciar; não transcrever em bloco.
+
 ## O que não está público (verificado, não presumido)
 
-- **Verificações de bombas por estabelecimento.** A consulta pública do PSIE oferece oito tipos de instrumento — balança dinâmica, balança rodoferroviária, esfigmomanômetro, etilômetro, medidor de umidade de grãos, medidor de velocidade, taxímetro, veículo-tanque. **Bomba medidora não está entre eles**, e nenhum nome plausível de arquivo (`bomba*.json`, `instrumentos.json`, `verificacoes.json`) existe no host de dados abertos.
+- **Verificações de bombas por estabelecimento** (confirmado duas vezes: medido na tela em 2026-09-14 e documentado na wiki do Inmetro, seção anterior)**.** A consulta pública do PSIE oferece oito tipos de instrumento — balança dinâmica, balança rodoferroviária, esfigmomanômetro, etilômetro, medidor de umidade de grãos, medidor de velocidade, taxímetro, veículo-tanque. **Bomba medidora não está entre eles**, e nenhum nome plausível de arquivo (`bomba*.json`, `instrumentos.json`, `verificacoes.json`) existe no host de dados abertos.
 - **Autos de infração e fiscalizações por estabelecimento**: SGI, sigiloso pelo inventário do próprio PDA.
 - **Histórico de intervenções por instrumento** e **relação posto ↔ oficina executora**: SGI.
 - **Preços registrados manualmente pelas equipes de campo no SGI**: existem e não são explorados nem internamente (seção seguinte).
