@@ -1,4 +1,4 @@
-# ADR-010 — Recuperação documental hierárquica como capacidade complementar
+# ADR-011 — Recuperação documental hierárquica como capacidade complementar
 
 **Status:** Proposta para POC  
 **Data:** 2026-09-29  
