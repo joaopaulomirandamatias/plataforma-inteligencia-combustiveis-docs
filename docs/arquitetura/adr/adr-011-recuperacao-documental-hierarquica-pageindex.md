@@ -245,6 +245,9 @@ A adoção de Cloud deve passar por avaliação própria de segurança, privacid
 
 ## 9. POC obrigatório antes de produção
 
+Épico de implementação: [epico-poc-pageindex-recuperacao-hierarquica.md](../epico-poc-pageindex-recuperacao-hierarquica.md).
+
+
 Executar benchmark com conjunto controlado de aproximadamente 20 a 50 normas reais.
 
 Comparar ao menos:
