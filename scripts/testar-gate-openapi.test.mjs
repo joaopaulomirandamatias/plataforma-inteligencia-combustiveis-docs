@@ -49,6 +49,50 @@ function preflight(caminho) {
   operacoesValidas(documento);
 }
 
+function resolverRefLocal(documento, referencia) {
+  assert.match(referencia, /^#\//, "o gate estrito só resolve referências locais");
+  return referencia
+    .slice(2)
+    .split("/")
+    .map((parte) => parte.replaceAll("~1", "/").replaceAll("~0", "~"))
+    .reduce((atual, parte) => atual?.[parte], documento);
+}
+
+function exigirObjetosFechados(documento, schema, caminho, refsVisitadas = new Set()) {
+  assert.ok(schema && typeof schema === "object", `${caminho} precisa declarar schema`);
+
+  if (schema.$ref) {
+    if (refsVisitadas.has(schema.$ref)) return;
+    refsVisitadas.add(schema.$ref);
+    const resolvido = resolverRefLocal(documento, schema.$ref);
+    assert.ok(resolvido, `${caminho} aponta para ref ausente: ${schema.$ref}`);
+    exigirObjetosFechados(documento, resolvido, `${caminho} -> ${schema.$ref}`, refsVisitadas);
+    return;
+  }
+
+  for (const composicao of ["allOf", "anyOf", "oneOf"]) {
+    for (const [indice, parte] of (schema[composicao] ?? []).entries()) {
+      exigirObjetosFechados(documento, parte, `${caminho}.${composicao}[${indice}]`, refsVisitadas);
+    }
+  }
+
+  const tipos = Array.isArray(schema.type) ? schema.type : [schema.type];
+  if (tipos.includes("object") || schema.properties) {
+    assert.equal(
+      schema.additionalProperties,
+      false,
+      `${caminho} voltou a aceitar propriedades desconhecidas`,
+    );
+    for (const [nome, propriedade] of Object.entries(schema.properties ?? {})) {
+      exigirObjetosFechados(documento, propriedade, `${caminho}.${nome}`, refsVisitadas);
+    }
+  }
+
+  if (tipos.includes("array") || schema.items) {
+    exigirObjetosFechados(documento, schema.items, `${caminho}[]`, refsVisitadas);
+  }
+}
+
 function lint(caminho) {
   return spawnSync(REDOCLY, ["lint", "--config", CONFIG, caminho], {
     cwd: RAIZ,
@@ -95,6 +139,32 @@ test("contrato canônico passa preflight e lint com refs resolvidas", () => {
     stdio: "pipe",
     env: { ...process.env, NO_COLOR: "1" },
   });
+});
+
+test("objetos públicos de saúde e preços recusam propriedades desconhecidas", () => {
+  const documento = parse(readFileSync(CONTRATO, "utf8"));
+  for (const caminho of ["/saude", "/v1/precos"]) {
+    const schema = documento.paths[caminho].get.responses["200"].content["application/json"].schema;
+    exigirObjetosFechados(documento, schema, `GET ${caminho} 200`);
+  }
+});
+
+test("saúde e preços exigem somente as chaves estáveis observadas", () => {
+  const schemas = parse(readFileSync(CONTRATO, "utf8")).components.schemas;
+  const obrigatorias = [
+    [schemas.Saude, ["versao", "estado", "versao_snapshot", "contagens", "cargas", "execucoes"]],
+    [schemas.Saude.properties.contagens, ["cadastro", "pmqc", "preco", "atendimento"]],
+    [schemas.Saude.properties.cargas.items, ["fonte", "carga_id", "coletado_em", "cargas", "linhas_carregadas"]],
+    [schemas.Saude.properties.execucoes.items, ["fonte", "ultima_execucao", "acao"]],
+    [schemas.PaginaPrecos, ["itens", "proximo_cursor", "as_of", "versao_snapshot", "limite", "filtros"]],
+    [schemas.PrecoSemanal, ["posto_id", "produto", "valor_venda", "unidade", "bandeira", "municipio", "uf", "regiao", "semana_inicio", "semana_fim", "fonte", "localizador"]],
+    [schemas.FiltrosPrecos, ["produto", "uf", "municipio", "semana", "semana_de", "semana_ate"]],
+  ];
+
+  for (const [schema, esperado] of obrigatorias) {
+    assert.deepEqual([...schema.required].sort(), [...esperado].sort());
+  }
+  assert.deepEqual(schemas.Saude.properties.estado.enum, ["pronto"]);
 });
 
 test("gate recusa ref ausente, operationId duplicado e exemplo incompatível", async () => {

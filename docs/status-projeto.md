@@ -55,7 +55,7 @@ plataforma pública.
 
 A verificação coordenada dos repositórios e do ambiente de produção encontrou:
 
-- API pública respondendo `HTTP 200` e estado `ready`;
+- API pública respondendo `HTTP 200` e estado `pronto`;
 - portal público e `sitemap` respondendo `HTTP 200`;
 - `pic-api`, `pic-web`, pilha `pic-gestao-*`, bancos e migradores em estado
   operacional no Railway;
@@ -75,6 +75,12 @@ e consultar `/saude`.
 Os contratos, ADRs, catálogos de fontes e runbooks formam uma base ampla. A
 pendência principal é manter o status sincronizado com os runtimes e evitar que
 documentos de desenho sejam lidos como aceite de produto.
+
+Em 2026-10-11, os schemas públicos de `GET /saude` e `GET /v1/precos`
+passaram a recusar propriedades desconhecidas em todos os objetos, inclusive os
+aninhados. Os campos tornados obrigatórios são os que o runtime sempre monta,
+que a suíte de conformidade cobre e que foram observados em produção. O estado
+de saúde é o literal `pronto`, não `ready`.
 
 O trabalho de recuperação hierárquica com PageIndex pertence ao runtime
 **PHN/ReguHub (harmonização normativa)**. É uma experiência adjacente, em POC,

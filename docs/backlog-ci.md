@@ -57,6 +57,10 @@ para `main`. O gate usa dependências travadas no `package-lock.json` e:
 6. reprova exemplos incompatíveis com seus schemas;
 7. executa regressões sintéticas que precisam falhar quando esses controles são
    quebrados.
+8. exige que todos os objetos públicos de `GET /saude` e `GET /v1/precos`,
+   inclusive objetos aninhados, declarem `additionalProperties: false`;
+9. fixa como obrigatórias somente as chaves sempre serializadas pelo runtime e
+   observadas em produção, incluindo o literal `estado: pronto`.
 
 O backend continua fixando um commit imutável deste repositório. Assim, o CI de
 docs protege o contrato antes do merge, e o CI do backend protege a integração
