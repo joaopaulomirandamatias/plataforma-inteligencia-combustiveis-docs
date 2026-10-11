@@ -3,6 +3,8 @@
 Documentação de arquitetura e engenharia da **Plataforma de Inteligência de Combustíveis**: um sistema que integra, reconcilia e versiona as fontes públicas e institucionais sobre o mercado brasileiro de combustíveis (ANP, Receita Federal, IPEM/Inmetro, Procon, corpus normativo), produzindo informação rastreável e inteligência acionável para órgãos fiscalizadores, distribuidoras, postos, frotas, consumidores e academia — com monitoramento contínuo por agentes de IA.
 
 > **Status:** documentação viva da v1, com fundação de dados, API pública e site já implantados.
+> O estado consolidado, incluindo os gates ainda abertos, está no
+> [`status canônico do projeto`](docs/status-projeto.md).
 > Este repositório contém contratos e decisões; código e dados permanecem nos repositórios e ambientes próprios.
 
 ## O problema em uma frase
@@ -14,9 +16,10 @@ Os dados necessários para responder "este posto é confiável?" já existem —
 | Você é... | Leia |
 |---|---|
 | Qualquer pessoa | [`docs/index.md`](docs/index.md) — mapa de leitura por persona |
+| Quem quer saber onde o projeto parou | [`docs/status-projeto.md`](docs/status-projeto.md) — implementação, validação técnica, produção e aceite operacional |
 | Quem quer o projeto completo | [`docs/projeto-v1.md`](docs/projeto-v1.md) — o documento de projeto v1 na íntegra (setores, fontes, IA, fases, riscos, decisões) |
 | Arquiteto / dev | [`docs/arquitetura/plano-diretor.md`](docs/arquitetura/plano-diretor.md) — o plano diretor completo (C4, DDD, padrões, segurança, APIs) |
-| Quem quer as decisões | [`docs/arquitetura/adr/`](docs/arquitetura/adr/) — os 8 ADRs fundadores |
+| Quem quer as decisões | [`docs/arquitetura/adr/`](docs/arquitetura/adr/) — ADRs fundadores e decisões posteriores |
 | Eng. de dados | [`docs/dados/catalogo-fontes.md`](docs/dados/catalogo-fontes.md) — as fontes F01–F11, riscos e cuidados; [`mapa-de-integracoes.md`](docs/dados/mapa-de-integracoes.md) — o que falta, por órgão e empresa ([PDF](docs/apresentacao/mapa-de-integracoes.pdf)) |
 | Quem chegou agora | [`docs/onboarding/glossario.md`](docs/onboarding/glossario.md) — a linguagem ubíqua |
 | Público não técnico | [`docs/apresentacao/plataforma-v1-didatico.pdf`](docs/apresentacao/plataforma-v1-didatico.pdf) — versão didática ilustrada |

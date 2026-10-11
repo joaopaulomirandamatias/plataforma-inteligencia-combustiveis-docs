@@ -2,6 +2,10 @@
 
 A porta de entrada decide se a documentação é usada ou ignorada. Trilhas na ordem de leitura:
 
+> **Estado atual:** antes de interpretar um roadmap como entrega, consulte o
+> [status canônico do projeto](status-projeto.md). Ele separa implementação,
+> validação técnica, runtime em produção e aceite operacional.
+
 | Persona | Trilha | Tempo-alvo |
 |---|---|---|
 | Dev novo no time | [glossário](onboarding/glossario.md) → [ADRs 001–008](arquitetura/adr/) → [C4 contexto](arquitetura/c4/contexto.md) → [C4 contêineres](arquitetura/c4/conteineres.md) | 1º dia |
@@ -10,7 +14,7 @@ A porta de entrada decide se a documentação é usada ou ignorada. Trilhas na o
 | Fiscal / órgão parceiro | [guia de consumo da API](api/guia-de-consumo.md) → [webhooks](api/webhooks.md) → plano diretor §4 (papéis e escopo) → [PDF didático](apresentacao/plataforma-v1-didatico.pdf) | 1 tarde |
 | Integrador / consumidor da API | [guia de consumo](api/guia-de-consumo.md) → [openapi.yaml](api/openapi.yaml) → [webhooks](api/webhooks.md) → [catálogo de eventos](dados/eventos/README.md) | 1 tarde |
 | DPO / jurídico | **[RIPD](conformidade/lgpd/ripd.md)** (pendências no §8) → [cofre](seguranca/cofre-de-identidade.md) → [trilha de auditoria](seguranca/trilha-de-auditoria.md) → [ADR-004](arquitetura/adr/adr-004-cofre-de-identidade.md) e [ADR-005](arquitetura/adr/adr-005-score-restrito-a-orgaos.md) | 1 tarde |
-| Gestor / orientador | [README](../README.md) → [projeto v1](projeto-v1.md) → [PDF didático](apresentacao/plataforma-v1-didatico.pdf) → ADRs 001/005/006 | 1 hora |
+| Gestor / orientador | [README](../README.md) → [status atual](status-projeto.md) → [projeto v1](projeto-v1.md) → [PDF didático](apresentacao/plataforma-v1-didatico.pdf) → ADRs 001/005/006 | 1 hora |
 
 > **Integrador, antes de codificar:** o contrato descreve o desenho alvo, e nem toda operação declarada é servida. Quem decide o que dá para chamar é o `x-estado` de cada operação no [openapi.yaml](api/openapi.yaml) — sua allowlist é `x-estado in (implemented, deprecated)`, e `restricted` nunca entra nela. O [guia de consumo](api/guia-de-consumo.md) marca seção por seção o que está no ar e o que é desenho; hoje a API é anônima, sem autenticação, quota ou rate limit, e [webhooks](api/webhooks.md) inteiro é desenho.
 

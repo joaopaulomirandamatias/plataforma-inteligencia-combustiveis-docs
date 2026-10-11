@@ -90,7 +90,7 @@ Projeto: `Plataforma Combustível`.
 | Serviço | Source | Proteção | Health/readiness |
 |---|---|---|---|
 | `pic-api` | backend / `deploy` | CI backend | `/saude`, 30 s |
-| `pic-worker` | backend / `deploy` | CI backend | cron `0 6 * * *`, volume `/data` |
+| `pic-worker` | backend / `deploy` | CI backend | cron `0 4 * * *`, volume `/data` (observado em 2026-10-11) |
 | `pic-web` | frontend / `deploy` | CI frontend | `/`, 30 s |
 | Postgres | serviço gerenciado | — | Railway |
 
