@@ -42,12 +42,15 @@ Convenções: extremo aberto é `'infinity'` (nunca `NULL`); todo timestamp é `
 >
 > O grão cresce também numa tabela de **estado**, quando FONTES diferentes
 > afirmam legitimamente o mesmo tipo de estado sobre a mesma entidade. Posição
-> geográfica de um posto é estado — um ponto vivo por vez —, mas GEO-ANP (posição
-> publicada pela ANP) e GEO-01 (geocodificação por endereço) são evidências
-> concorrentes que podem coexistir; a chave é `(posto_id, fonte, …)`. Com
-> `posto_id` sozinho, a segunda fonte seria rejeitada como duplicata. A pergunta
-> que decide o grão não é "estado ou evento?", e sim **"o que pode ser verdade ao
-> mesmo tempo sem se contradizer?"**. (Migração 022.)
+> geográfica de um posto é estado: para cada `(posto_id, fonte)` existe **no
+> máximo uma evidência com transação viva que cubra o mesmo instante de validade
+> D**. Isso não significa “uma única linha viva”: segmentos de validade
+> disjuntos são legítimos. Além disso, GEO-ANP (posição publicada pela ANP) e
+> GEO-01 (geocodificação por endereço) são evidências concorrentes que podem
+> coexistir; por isso a chave inclui `fonte`. A pergunta que decide o grão não é
+> "estado ou evento?", e sim **"o que pode ser verdade ao mesmo tempo sem se
+> contradizer?"**. (Invariante introduzido na migração 023 e preservado pelo
+> forward-fix 024.)
 
 ## As quatro operações permitidas
 
@@ -61,6 +64,37 @@ Não existe quinta. `UPDATE` de payload e `DELETE` são proibidos por ADR-001 (e
 | 4 | **Superar** (fonte reemitiu o dado) | Igual à correção, com `localizador` da nova emissão |
 
 A operação 2 é a única forma de "mudar" algo — e ela **preserva** a versão anterior consultável: quem perguntar "o que sabíamos ontem?" recebe o valor de ontem, errado como era.
+
+### Evidência geográfica: migrações 023 e 024
+
+A migração 023 introduziu o primeiro invariante de escrita para
+`fatos.fato_geocodificacao`: o `EXCLUDE` por
+`(posto_id, fonte, validade &&, transacao &&)`, a função
+`SECURITY DEFINER` `fatos.afirmar_evidencia_geografica` como único caminho de
+escrita e a remoção de `UNIQUE (fato_cadastro_id, cache_id)`. Essa `UNIQUE`
+impedia uma fonte de reafirmar no futuro uma resposta já usada no passado; o
+livro-razão bitemporal deve rejeitar sobreposição, não repetição histórica.
+
+A primeira versão da função, porém, tinha duas lacunas: ao receber uma mudança
+que começava em D3, encerrava A inteira em vez de preservar o prefixo válido; e
+lia a origem F01 antes da serialização, permitindo corrida com o refresh
+cadastral. A migração 024 é um **forward-fix**, em arquivo novo porque o ledger
+de migrações registra o nome já aplicado. Ela relê e bloqueia a origem após a
+trava, recusa origem encerrada ou validade vazia, fecha os segmentos alcançados
+e materializa os pedaços não substituídos.
+
+Exemplo canônico de superação aprendida em C3:
+
+```text
+conhecimento em C < C3:  A [D1, ∞)
+conhecimento em C ≥ C3:  A [D1, D3) + B [D3, ∞)
+```
+
+Assim, B altera somente as células C×D alcançadas a partir de D3; uma consulta
+histórica anterior a C3 continua vendo A em `[D1, ∞)`. Várias linhas com
+transação viva são corretas quando suas validades são disjuntas. O que o
+invariante proíbe é duas evidências da **mesma fonte** cobrirem o mesmo D no
+mesmo C.
 
 > **Mecanismo canônico da operação 2.** Com o `REVOKE UPDATE` do ADR-001, fechar a transação da versão antiga é fisicamente um `UPDATE` — que o papel de aplicação não pode executar. A resolução é uma **função `SECURITY DEFINER` do owner**, restrita ao par fechar+inserir na mesma transação: o privilégio mora no código auditado, não no papel. (Decisão do coordenador em 2026-08-07, a partir da tensão identificada na implementação F0-01; implementação em card próprio.)
 
@@ -120,8 +154,8 @@ Regra de produto: **rota quente não consulta bitemporal cru** — lê snapshot 
    sem ele o caminho de escrita erra em silêncio por tempo indeterminado.
 
    Precedente: `fatos.fato_geocodificacao` nasceu na 017 sem a restrição e
-   acumulou três evidências vivas por posto até 2026-08-20. A migração 022
-   acrescentou o `EXCLUDE`, e a decisão do coordenador foi encadear
+   acumulou três evidências vivas por posto até 2026-08-20. A migração 023
+   acrescenta o `EXCLUDE`, e a decisão do coordenador foi encadear
    retroativamente **com arquivo de evidência obrigatório** — o estado anterior,
    linha a linha e com hash, gravado antes do commit, para que o episódio
    continue provável fora do banco. Runbook `docs/operacao-saneamento-geo.md`,
