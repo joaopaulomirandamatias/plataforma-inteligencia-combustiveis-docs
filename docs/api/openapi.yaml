@@ -795,10 +795,16 @@ components:
 
     PrecoSemanal:
       type: object
+      additionalProperties: false
       required:
         - posto_id
         - produto
         - valor_venda
+        - unidade
+        - bandeira
+        - municipio
+        - uf
+        - regiao
         - semana_inicio
         - semana_fim
         - fonte
@@ -828,6 +834,7 @@ components:
 
     FiltrosPrecos:
       type: object
+      additionalProperties: false
       required: [produto, uf, municipio, semana, semana_de, semana_ate]
       description: >
         Recorte EFETIVAMENTE aplicado, já normalizado para a grafia da fonte.
@@ -853,6 +860,7 @@ components:
         proximo_cursor: { type: string }
     PaginaPrecos:
       type: object
+      additionalProperties: false
       required: [itens, proximo_cursor, as_of, versao_snapshot, limite, filtros]
       properties:
         itens:
@@ -874,19 +882,33 @@ components:
 
     Saude:
       type: object
-      required: [versao, estado, versao_snapshot, contagens, cargas]
+      additionalProperties: false
+      required: [versao, estado, versao_snapshot, contagens, cargas, execucoes]
       properties:
         versao: { type: string, description: versão do código em execução }
-        estado: { type: string }
+        estado:
+          type: string
+          enum: [pronto]
+          description: >
+            Literal estável de prontidão. O runtime, os testes de contrato e a
+            produção publicam `pronto`; `ready` nunca foi valor do contrato.
         versao_snapshot: { type: string }
         contagens:
           type: object
-          additionalProperties: { type: integer }
+          additionalProperties: false
+          required: [cadastro, pmqc, preco, atendimento]
+          properties:
+            cadastro: { type: integer }
+            pmqc: { type: integer }
+            preco: { type: integer }
+            atendimento: { type: integer }
           description: fatos por conjunto (F01/F02/F03/F06)
         cargas:
           type: array
           items:
             type: object
+            additionalProperties: false
+            required: [fonte, carga_id, coletado_em, cargas, linhas_carregadas]
             properties:
               fonte: { type: string }
               carga_id: { type: integer }
@@ -907,6 +929,7 @@ components:
             ENTROU dado. Fonte que nunca produziu carga aparece aqui e não lá.
           items:
             type: object
+            additionalProperties: false
             required: [fonte, ultima_execucao, acao]
             properties:
               fonte: { type: string }
