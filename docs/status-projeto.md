@@ -95,6 +95,16 @@ retomada é estabilização: reconciliar branches antigas e contratos, restaurar
 uma trilha de CI inequívoca e executar com segurança o saneamento das evidências
 GEO antes de impor a nova restrição de unicidade.
 
+No PR #70 do núcleo, as migrações 023 e 024 implementam o invariante geográfico
+correto: no máximo uma evidência com transação viva por posto+fonte cobrindo o
+mesmo instante D, admitindo segmentos de validade disjuntos. A 024 é o
+forward-fix que preserva a matriz C×D — A `[D1,D3)` e B `[D3,∞)` no conhecimento
+corrente, sem apagar A `[D1,∞)` do histórico anterior — e serializa a origem F01
+contra o refresh cadastral. Em 2026-10-11, a suíte completa em PostgreSQL e o
+CI remoto do PR estavam aprovados; o trabalho seguia em revisão e **não estava
+comprovado como mesclado, migrado ou ativo em produção**. O saneamento e os
+gates do runbook continuam obrigatórios.
+
 O [status de F1](status-f1-implementacao.md) registra a engenharia pré-rótulo.
 Seu próximo avanço não é fabricar mais resultados sintéticos: requer snapshots
 reais, dois revisores humanos independentes, adjudicação e abertura única do

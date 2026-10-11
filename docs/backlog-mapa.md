@@ -2,7 +2,7 @@
 
 Ideia do usuário (2026-08-08): a ficha pública deve ter um mapa mostrando os postos.
 
-## Estado executivo — 2026-08-08
+## Estado executivo — 2026-10-11
 
 | Card | Estado | Resultado atual |
 |---|---|---|
@@ -12,7 +12,7 @@ Ideia do usuário (2026-08-08): a ficha pública deve ter um mapa mostrando os p
 | GEO-04 posição oficial ANP | ✅ **engenharia em produção** | API oficial paginada, snapshot imutável, vínculo por código SIMP e defesa por CNPJ; a carga diária entra pelo GEO-05 |
 | WEB-02 mapa | ✅ **produção** | mapa client-side por viewport, proxy same-origin com allowlist, estado vazio, clusters e atribuição de tiles |
 | GEO-05 operação diária | 🟡 **em promoção** | GEO-ANP após F01, cadência por livro-razão e comando isolado `pic-geo-anp` |
-| GEO-06 um ponto por posto | 🟡 **em revisão** | `/v1/postos/mapa` colapsa evidências vivas por `posto_id` com regra determinística; `limite`/`truncado` passam a contar postos |
+| GEO-06 um ponto por posto | 🟡 **em revisão** | PR #70: leitura colapsada por `posto_id` e escrita bitemporal 023/024 implementadas; suíte completa e CI do PR aprovados, ainda sem merge, migração ou promoção em produção |
 
 **Importante:** GEO-01 continua sendo o fallback de geocodificação por endereço e não depende de um provedor configurado em produção. A fonte primária agora é GEO-ANP, obtida diretamente da API oficial de Revendedores. O mapa permanece vazio até a primeira execução operacional de GEO-ANP concluir.
 
@@ -146,6 +146,34 @@ Duas coisas somadas, ambas no caminho de escrita — e **não** é fan-out de JO
 
 O acúmulo é, portanto, **defeito de escrita**, não desenho: posição geográfica de um posto segundo uma fonte é **estado**, não evento. A correção do caminho de escrita (fechar a versão anterior e acrescentar o `EXCLUDE`) tem card próprio, porque exige migração e saneamento do que já está gravado.
 
+### Correção de escrita em revisão — PR #70
+
+A migração 023 introduz o `EXCLUDE` por
+`(posto_id, fonte, validade &&, transacao &&)` e a função privilegiada
+`fatos.afirmar_evidencia_geografica` como único escritor. Ela também remove
+`UNIQUE (fato_cadastro_id, cache_id)`: a restrição antiga confundia uma
+reafirmação histórica legítima com duplicidade e impediria A → B → A ao longo
+do tempo. A regra real é mais precisa: para um posto e uma fonte, há no máximo
+uma evidência com transação viva cobrindo o mesmo instante D.
+
+A migração 024 corrige para frente duas lacunas da primeira implementação da
+023. Ela serializa a decisão GEO e relê a origem F01 com bloqueio compartilhado,
+fechando a corrida com refresh cadastral; e segmenta a validade ao superar uma
+evidência. Se A cobria `[D1, ∞)` e em C3 chega B com referência D3, o estado do
+conhecimento passa a ser:
+
+```text
+C < C3:  A [D1, ∞)
+C ≥ C3:  A [D1, D3) + B [D3, ∞)
+```
+
+O histórico anterior em C permanece intacto e, no estado corrente, A e B podem
+continuar vivas porque cobrem segmentos D disjuntos. O forward-fix também
+recusa origem F01 encerrada, combinação fonte↔tipo incompatível e validade
+vazia. Em 2026-10-11, 023/024 estavam implementadas no PR #70, com suíte
+PostgreSQL completa e CI remoto aprovados; isso **não** prova merge, aplicação
+no banco nem operação em produção.
+
 ### A decisão do endpoint
 
 Ainda que a escrita fosse corrigida, o endpoint **precisaria** escolher: GEO-ANP e GEO-01 são fontes concorrentes legítimas e podem estar vivas para o mesmo posto ao mesmo tempo. Colapsar é a única defesa disponível a uma API somente-leitura, e passa a ser regra publicada em vez de acidente.
@@ -154,7 +182,7 @@ Ainda que a escrita fosse corrigida, o endpoint **precisaria** escolher: GEO-ANP
 
 1. **autoridade da fonte** — `GEO-ANP` antes de `GEO-01`, por `CASE` explícito. A precedência é metodológica (posição publicada pela ANP vence coordenada inferida do endereço) e o `CASE` também evita a armadilha alfabética: `'GEO-01' < 'GEO-ANP'`, então ordenar `fonte` como texto escolheria justamente o fallback;
 2. **recência** — `coletado_em` mais recente dentro da mesma autoridade;
-3. **desempate endereçado por conteúdo** — `resultado_sha256`, depois `provedor`, `versao_provedor` e `consulta_sha256`, todos `COLLATE "C"`. Empatar no hash significa que as evidências carregam a mesma coordenada e os mesmos metadados; as três chaves seguintes completam uma ordem **total** sobre as linhas vivas por causa das restrições já existentes (`EXCLUDE` da 004 garante um F01 vivo por posto no `as_of`; `UNIQUE (fato_cadastro_id, cache_id)`; `UNIQUE (provedor, versao_provedor, consulta_sha256)`).
+3. **desempate endereçado por conteúdo** — `resultado_sha256`, depois `provedor`, `versao_provedor` e `consulta_sha256`, todos `COLLATE "C"`. Empatar no hash significa que as evidências carregam a mesma coordenada e os mesmos metadados. No desenho 023/024, o `EXCLUDE` geográfico garante no máximo uma evidência por fonte cobrindo a célula C×D consultada; o `CASE` separa as fontes concorrentes. As chaves de conteúdo mantêm a escolha determinística sem depender de identidade sequencial, enquanto `UNIQUE (provedor, versao_provedor, consulta_sha256)` continua protegendo a identidade do cache.
 
 Nada de `random()`, de ordem física ou de `evidencia_id`: identificador de sequência muda com a ordem de carga e não sobrevive a uma reconstrução da base.
 
@@ -170,7 +198,7 @@ Nada de `random()`, de ordem física ou de `evidencia_id`: identificador de sequ
 ### Ressalvas
 
 - **Postos legitimamente distintos no mesmo endereço** (bandeira dupla, posto e conveniência com autorizações separadas) continuam sendo pontos separados: o colapso é por `posto_id`, nunca por coordenada. Dois `posto_id` diferentes com a mesma latitude/longitude produzem dois itens sobrepostos no mapa — o que é verdade, não defeito, e a distinção fica com a identidade (F1), não com a geografia.
-- Enquanto o acúmulo de escrita existir, `evidencia_id` do ponto exibido **muda a cada coleta diária**, mesmo com a coordenada idêntica. Quem quiser estabilidade de identificador deve usar `posto_id`.
+- Até que o saneamento e as migrações 023/024 sejam promovidos, o acúmulo de escrita observado em produção pode fazer `evidencia_id` do ponto exibido **mudar a cada coleta diária**, mesmo com coordenada idêntica. Depois da promoção, `evidencia_id` continua sendo identidade da evidência, não identificador estável do posto; consumidores devem usar `posto_id` para essa finalidade.
 - O colapso não inventa cobertura: posto sem evidência geográfica viva continua ausente do mapa, e isso é "sem localização", não "não existe".
 
 ## Cuidados herdados do projeto
@@ -183,6 +211,6 @@ Nada de `random()`, de ordem física ou de `evidencia_id`: identificador de sequ
 
 ## Sequência atual
 
-`GEO-01 ✅` → `GEO-02 ✅` → `GEO-03 ✅` → `GEO-04 ✅` → `WEB-02 ✅` → `GEO-05 🟡` → `GEO-06 🟡`
+`GEO-01 ✅` → `GEO-02 ✅` → `GEO-03 ✅` → `GEO-04 ✅` → `WEB-02 ✅` → `GEO-05 🟡` → `GEO-06 🟡 (PR #70)`
 
 Depois da primeira carga GEO-ANP, o próximo gate é medir cobertura, registros sem vínculo, divergências de CNPJ e necessidade real do fallback GEO-01 antes de ativar qualquer provedor externo.
