@@ -77,7 +77,12 @@ Um ressalva: o gate de volume anômalo do dump mensal continua valendo durante a
 
 ## Cron
 
-O worker roda por cron (`0 6 * * *`, com o volume em `/data`). O agendamento é configuração de serviço e sobrevive ao `down`, mas **conferir é obrigatório**, porque a falha é muda: worker sem cron não gera erro nenhum — só nunca mais ingere, e o sintoma aparece dias depois como "os dados estão velhos", longe da causa. A confirmação real não é ver o cron na tela; é a contagem andar no dia seguinte.
+O worker foi observado em 2026-10-11 com o cron `0 4 * * *` e o volume em
+`/data`. O agendamento é configuração de serviço e sobrevive ao `down`, mas
+**conferir é obrigatório**, porque a falha é muda: worker sem cron não gera erro
+nenhum — só nunca mais ingere, e o sintoma aparece dias depois como "os dados
+estão velhos", longe da causa. A confirmação real não é ver o cron na tela; é a
+contagem andar no dia seguinte.
 
 ## Se algo não voltar
 
@@ -85,9 +90,16 @@ O worker roda por cron (`0 6 * * *`, com o volume em `/data`). O agendamento é 
 2. **API ou worker sobem e caem em laço** → leia o log de arranque antes de qualquer hipótese. O contêiner imprime o modo e a **origem** dele (`[iniciar] modo: agenda (de $PIC_MODO)`); worker que subiu como `servir` é uma segunda API silenciosa, e o sintoma seria a F01 parar de ingerir. URL de banco é **por serviço**: worker que recebeu o papel de leitura recusa subir e diz qual papel recebeu e qual variável corrigir.
 3. **Nada disso resolve** → pare e escale. A linha que não se cruza sozinho: não destruir volume e não reprovisionar serviço "para começar limpo". Reprovisionar perde variável, domínio, cron e a ligação de volume, e troca um problema de dez minutos por um dia de reconstrução.
 
-## A pilha da PIC Gestão não voltou — e isso não é regressão do religar
+## PIC Gestão: não reutilizar o diagnóstico histórico
 
-Registrado aqui para que ninguém confunda **"não religou"** com **"quebrou ao religar"**: a pilha `pic-gestao-*` **nunca esteve operacional**. `pic-gestao-api` falha desde 11/08, e idp, console e migradores só têm deployments `SKIPPED`. Não há estado bom anterior para o qual voltar, e tentar consertá-la durante uma retomada é abrir um projeto de implantação no meio de uma operação de emergência. Quem religar deve registrar a pilha como fora do escopo, com esta frase, e seguir.
+> **Registro histórico superado:** em 2026-08-15 a pilha `pic-gestao-*` ainda
+> não tinha estado operacional conhecido; `pic-gestao-api` falhava e os demais
+> deployments estavam `SKIPPED`. Essa observação não descreve mais o ambiente:
+> em 2026-10-11 API, console, IDP, worker, bancos e migradores da gestão foram
+> observados operacionais. Em uma retomada, verificar cada serviço e registrar a
+> evidência corrente; nunca reutilizar o diagnóstico de agosto como fato atual.
+> Serviço `Online` também não encerra os aceites G1/G2 — consulte o
+> [status canônico](../../status-projeto.md).
 
 ## O que NÃO fazer
 
