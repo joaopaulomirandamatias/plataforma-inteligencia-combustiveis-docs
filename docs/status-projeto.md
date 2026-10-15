@@ -1,6 +1,6 @@
 # Status canônico do projeto
 
-**Atualizado em:** 2026-10-11
+**Atualizado em:** 2026-10-15
 
 **Escopo:** Plataforma de Inteligência de Combustíveis (PIC)
 
@@ -95,6 +95,24 @@ retomada é estabilização: reconciliar branches antigas e contratos, restaurar
 uma trilha de CI inequívoca e executar com segurança o saneamento das evidências
 GEO antes de impor a nova restrição de unicidade.
 
+Em 2026-10-11 foi registrada uma nova decisão de produto para a
+[ficha pública](produto/ficha-publica.md): preço não pode ser sua única dimensão
+principal. Cadastro, amostras PMQC, cada ensaio/resultado/unidade, atos públicos,
+frescor e metodologia devem ser organizados por seção. Isso é **especificação
+alvo**, não evidência de disponibilidade em produção.
+
+Em 2026-10-15, o primeiro bloco foi concluído nas branches de integração e
+segue sem promoção ao runtime público:
+o contrato canônico passou a declarar agrupamentos PMQC com identidade
+explicitamente derivada; o core agrupa ensaios pelo identificador do ponto
+publicado pela F02, data, produto e coordenadas, preserva o triestado, sinaliza
+truncamento e mantém `fatos_recentes`; e o portal organiza agrupamento, produto,
+ensaio, resultado, unidade, fonte, data e contagens sem score nem alegação de
+amostra física. As três trilhas têm testes locais verdes, mas ainda precisam de
+revisão final, push consolidado, CI, merge coordenado, deploy e smoke de
+produção. Até essas evidências existirem, o estado externo continua sendo a
+ficha anterior.
+
 No PR #70 do núcleo, as migrações 023 e 024 implementam o invariante geográfico
 correto: no máximo uma evidência com transação viva por posto+fonte cobrindo o
 mesmo instante D, admitindo segmentos de validade disjuntos. A 024 é o
@@ -114,6 +132,15 @@ holdout.
 
 G1 e G2 possuem implementação, testes e serviços implantados. Permanecem
 **abertos para aceite operacional**. O aceite mínimo deve registrar:
+
+Em 2026-10-15, a conta piloto foi auditada contra a configuração do serviço e
+foi confirmado drift entre o e-mail esperado e a identidade já persistida no
+Keycloak. O cadastro persistido foi reconciliado em produção; sujeito, nome de
+usuário, senha e TOTP foram preservados, a conta permaneceu ativa e uma
+verificação posterior confirmou a ausência de ações obrigatórias. O utilitário
+e o runbook desse diagnóstico foram integrados no repositório de gestão com CI
+verde. Essa correção restabelece o identificador de acesso esperado, mas não
+substitui o aceite G1/G2 abaixo.
 
 1. dois atores OIDC reais, com papéis diferentes;
 2. duas organizações e a matriz negativa de acesso cruzado;

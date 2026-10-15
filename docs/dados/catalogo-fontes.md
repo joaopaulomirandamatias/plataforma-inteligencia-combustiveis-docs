@@ -42,6 +42,7 @@ Decisão da F0-01, arbitrada de novo na verificação da F0-02: **tolerante a co
 | Papel | **Gabarito de qualidade** (rótulo F2 da taxonomia); insumo do risco e da ficha pública |
 | Riscos | Amostragem **dirigida, não aleatória** — taxa de reprovação do PMQC ≠ prevalência real; identificação do posto por nome/endereço, não por chave estável |
 | Cuidados | Registrar o desenho amostral junto do dado; toda estatística derivada declara o viés de seleção; reconciliação obrigatória antes de qualquer junção |
+| Exibição pública | Organizar por amostra, produto e ensaio; mostrar `resultado`, `unidade` e classificação somente como publicados, com data/fonte e sem nota global. Ver [especificação da ficha](../produto/ficha-publica.md) |
 
 ## F03 — ANP · SLP (preços)
 
