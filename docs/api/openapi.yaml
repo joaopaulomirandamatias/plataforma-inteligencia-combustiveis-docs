@@ -226,7 +226,7 @@ paths:
       operationId: getPosto
       x-estado: implemented
       x-schema-promocao:
-        qualidade_combustivel: candidate-local
+        qualidade_combustivel: production
       security: []
       parameters:
         - $ref: "#/components/parameters/PostoId"
@@ -715,7 +715,7 @@ components:
     QualidadeCombustivel:
       type: object
       additionalProperties: false
-      x-promocao: candidate-local
+      x-promocao: production
       required: [identidade_agrupamento, limite, truncado, agrupamentos]
       description: >
         Resultados públicos do PMQC organizados em agrupamentos derivados. A

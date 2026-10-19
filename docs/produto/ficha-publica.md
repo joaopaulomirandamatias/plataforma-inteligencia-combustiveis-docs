@@ -1,15 +1,14 @@
 # Ficha pública do posto — conteúdo e organização
 
-> **Estado:** especificação de produto. Este documento descreve a experiência
-> alvo; não afirma que todas as seções já estejam disponíveis no portal ou na
-> API. O [status canônico](../status-projeto.md) continua sendo a fonte para
-> distinguir desenho, implementação local e produção.
+> **Estado:** especificação de produto com o primeiro bloco factual em
+> produção. Este documento ainda contém dimensões alvo que não estão no portal
+> ou na API. O [status canônico](../status-projeto.md) continua sendo a fonte
+> para distinguir desenho, implementação e produção.
 >
 > **Recorte observado em 2026-10-19:** a seção visual **Qualidade do
-> combustível** está em produção no portal, mas a API pública ainda fornece o
-> payload legado. Por isso a seção exibe o estado neutro de compatibilidade, sem
-> agrupamentos ou ensaios. O contrato estruturado descrito abaixo continua
-> candidato e não está publicado no core.
+> combustível** e o payload estruturado estão em produção. A ficha
+> `00097ff8-98c0-5d16-823e-66edb77c334c` foi observada com 6 agrupamentos e 48
+> ensaios reais, incluindo data, fonte, resultado, unidade e classificação.
 
 ## Objetivo
 
@@ -235,7 +234,7 @@ histórico.
 | Fonte/dimensão | Conteúdo público elegível | Organização na ficha | Estado do requisito |
 |---|---|---|---|
 | F01 — cadastro ANP | CNPJ PJ, bandeira, autorização, endereço e datas | Cadastro | Já existe parcialmente |
-| F02 — PMQC | Agrupamento derivado, produto, ensaio, resultado, unidade e classificação triestado | Qualidade, por agrupamento e ensaio | Seção visual em produção com estado legado neutro; contrato/core estruturados candidatos e não implantados |
+| F02 — PMQC | Agrupamento derivado, produto, ensaio, resultado, unidade e classificação triestado | Qualidade, por agrupamento e ensaio | **Em produção** no contrato, core e portal; smoke positivo em 2026-10-19 |
 | F03 — preços ANP | Valor, unidade, produto, semana e cobertura regional | Preços e médias | Já existe parcialmente |
 | GEO-ANP/GEO-01 | Posição oficial ou inferida, com origem | Mapa/localização | Já existe parcialmente |
 | F04 — atos ANP | Processo, ato, situação e datas, se a granularidade pública permitir | Linha do tempo oficial | Pendente de fonte/contrato |
@@ -257,27 +256,32 @@ de integração coordenadas:
   hidratação e avisos metodológicos;
 - as suítes locais de contrato, core e portal passaram.
 
-Em 2026-10-19, somente a camada do portal foi promovida. Os PRs #35/#36 foram
+Em 2026-10-19, a camada do portal foi promovida primeiro. Os PRs #35/#36 foram
 mesclados, `main` e `deploy` ficaram em
 `d9b93a36e5f0afb1b2f2eb43a274b3496e577bc9`, o pipeline Woodpecker #47 passou em
 CI e promoção e o deployment Railway
 `c8513d09-6802-440a-bee7-a31368e2fd74` terminou com `SUCCESS`. O smoke retornou
 `HTTP 200` e confirmou visualmente a ficha
-`304d2b1e-e655-5f50-8db9-b8445179ce25`. Como o runtime do core permanece no
-payload legado, a seção **Qualidade do combustível** mostra o estado neutro e
-não inventa agrupamentos, ensaios nem classificações.
+`304d2b1e-e655-5f50-8db9-b8445179ce25` no estado legado neutro.
+
+Depois, o PR #72 do núcleo isolou o bloco PMQC das migrações GEO bloqueadas,
+passou pelos pipelines Woodpecker #10 e #11 e promoveu `main`/`deploy` para
+`8f46c869bcd956dab30ec903d24da8cbfddfebb3`. O Migrator Railway
+`11efd3fe-c865-4ed6-a921-3c4e1bba2f1e` confirmou 22 migrações aplicadas e nada
+pendente; a API `33982e35-b1ec-4344-b5af-c1a2cb547903` terminou com `SUCCESS`.
+O smoke da ficha `00097ff8-98c0-5d16-823e-66edb77c334c` confirmou 6 agrupamentos
+e 48 ensaios e a interface exibiu contagens triestado, resultado, unidade,
+fonte e data sem erros no console.
 
 Para cumprir esta especificação por inteiro ainda é necessário:
 
 1. remover o NO-GO de backup/PITR do núcleo e executar com segurança a sequência
    das migrações 023/024 do PR #70;
-2. promover contrato e core na ordem coordenada, com o core fixando o SHA do
-   contrato e cada repositório passando pelo próprio CI;
-3. executar smoke test da resposta estruturada implantada e da ficha com
-   agrupamentos reais, inclusive payload de hidratação e viewport móvel;
-4. definir paginação/limites para históricos extensos e preservar `as_of` em
+2. ampliar o smoke automatizado do bloco PMQC para payload de hidratação,
+   viewport móvel, zoom e leitor de tela;
+3. definir paginação/limites para históricos extensos e preservar `as_of` em
    todas as consultas;
-5. implementar as demais dimensões públicas elegíveis e seus gates, sem
+4. implementar as demais dimensões públicas elegíveis e seus gates, sem
    antecipar F06 por posto enquanto o NO-GO de privacidade estiver aberto.
 
 A reconciliação segue o contrato de
@@ -298,21 +302,23 @@ populacional só aparece quando houver denominador documentado.
 
 ## Critérios de aceite
 
-- [ ] preço não é a única dimensão factual da ficha;
-- [ ] cada agrupamento PMQC derivado é reconhecível como unidade, sem afirmar
+- [x] preço não é a única dimensão factual da ficha;
+- [x] cada agrupamento PMQC derivado é reconhecível como unidade, sem afirmar
       que representa uma amostra física identificada pela fonte;
-- [ ] cada ensaio mostra resultado, unidade e classificação exatamente como
+- [x] cada ensaio mostra resultado, unidade e classificação exatamente como
       sustentado pela fonte;
-- [ ] `true`, `false` e `null` de PMQC são testados separadamente; `null` nunca
+- [x] `true`, `false` e `null` de PMQC são testados separadamente; `null` nunca
       é serializado ou renderizado como conforme/não conforme;
-- [ ] fixture com um único agrupamento contendo `true`, `false` e `null` exibe
+- [x] fixture com um único agrupamento contendo `true`, `false` e `null` exibe
       contagem `1/1/1`, não mistura outra chave derivada e não inventa
       classificação geral;
-- [ ] nove agrupamentos completos devolvem os oito mais recentes e
+- [x] nove agrupamentos completos devolvem os oito mais recentes e
       `truncado: true`; até oito devolvem `truncado: false`;
-- [ ] ausência, atraso, não classificação e não conformidade são estados
-      distintos;
-- [ ] todo fato apresenta fonte e data; todo agregado apresenta cobertura;
+- [x] ausência, não classificação e não conformidade são estados distintos;
+- [ ] atraso/frescor possui estado e limiar documentados, separados da data do
+      ensaio e da ausência de resultado;
+- [x] todo ensaio PMQC apresenta fonte e data; cada agrupamento apresenta suas
+      contagens e o recorte declara limite/truncamento;
 - [ ] a visão histórica usa o mesmo `as_of` em todas as seções e possui link
       permanente;
 - [ ] teste bitemporal prova que fato aprendido após `as_of` não aparece e que
