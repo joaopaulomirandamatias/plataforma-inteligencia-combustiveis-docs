@@ -59,17 +59,17 @@ Enquanto papel de órgão não existir no runtime, as duas seguem em 404 — o m
 ## O que o contrato garante — e o que não garante
 
 > **Estado das rotas: no ar** para as seis `implemented`. **Estado do schema
-> estruturado de PMQC na ficha: candidato local**, indicado por
+> estruturado de PMQC na ficha: produção**, indicado por
 > `x-schema-promocao` na operação e `x-promocao` no schema.
 >
-> Desde 2026-10-19, o portal público já contém a seção visual de qualidade, mas
-> a API em produção ainda entrega o payload legado. A interface mostra o estado
-> neutro de compatibilidade; isso não promove o schema candidato nem autoriza
-> clientes a consumirem agrupamentos ou ensaios em produção.
+> Desde 2026-10-19, API e portal públicos entregam o bloco estruturado. O smoke
+> de produção confirmou agrupamentos e ensaios reais na ficha
+> `00097ff8-98c0-5d16-823e-66edb77c334c`, com data, fonte, resultado, unidade e
+> classificação.
 
 Esta é a distinção mais importante do documento, porque schema de operação servida e schema de operação no papel são visualmente idênticos e valem coisas opostas.
 
-**Para as seis `implemented`, o schema estável é verificado contra a resposta real.** A suíte do backend (`tests/test_conformidade_contrato.py`) sobe a API, chama cada uma delas e valida o corpo devolvido contra o schema deste arquivo — `Saude`, `PaginaPostos`/`PostoResumo`, `MapaPostos`/`PontoMapa`, `Posto`/`Fato`/`QualidadeCombustivel`/`AgrupamentoPMQC`/`EnsaioPMQC`, `ContextoRegional`/`ItemContextoRegional`/`MediaRegional`, `PaginaPrecos`/`PrecoSemanal`/`FiltrosPrecos` — e também os corpos de erro contra `Problem`. O CI do backend faz checkout deste repositório no **SHA fixado** em `.github/contrato.sha` e roda essa suíte contra PostgreSQL real. Durante esta promoção coordenada, o bloco PMQC marcado `candidate-local` é garantia da branch candidata e dos testes locais, não do runtime público; o marcador só pode mudar depois do deploy e do smoke test.
+**Para as seis `implemented`, o schema estável é verificado contra a resposta real.** A suíte do backend (`tests/test_conformidade_contrato.py`) sobe a API, chama cada uma delas e valida o corpo devolvido contra o schema deste arquivo — `Saude`, `PaginaPostos`/`PostoResumo`, `MapaPostos`/`PontoMapa`, `Posto`/`Fato`/`QualidadeCombustivel`/`AgrupamentoPMQC`/`EnsaioPMQC`, `ContextoRegional`/`ItemContextoRegional`/`MediaRegional`, `PaginaPrecos`/`PrecoSemanal`/`FiltrosPrecos` — e também os corpos de erro contra `Problem`. O CI do backend faz checkout deste repositório no **SHA fixado** em `.github/contrato.sha` e roda essa suíte contra PostgreSQL real. O marcador `production` do bloco PMQC foi promovido somente depois de CI verde, Migrator no-op, deployment da API e smoke do payload e do portal públicos.
 
 Na ficha, `qualidade_combustivel.identidade_agrupamento` é sempre `derivada` e
 `qualidade_combustivel.agrupamentos` é sempre uma lista. A fonte não fornece um

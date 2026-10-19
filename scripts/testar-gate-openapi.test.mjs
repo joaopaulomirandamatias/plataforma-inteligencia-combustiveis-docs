@@ -176,9 +176,9 @@ test("ficha pública exige PMQC estruturado, derivado, fechado e tri-state", () 
   assert.equal(
     documento.paths["/v1/postos/{posto_id}"].get["x-schema-promocao"]
       .qualidade_combustivel,
-    "candidate-local",
+    "production",
   );
-  assert.equal(schemas.QualidadeCombustivel["x-promocao"], "candidate-local");
+  assert.equal(schemas.QualidadeCombustivel["x-promocao"], "production");
   assert.deepEqual(
     [...schemas.QualidadeCombustivel.required].sort(),
     ["agrupamentos", "identidade_agrupamento", "limite", "truncado"],

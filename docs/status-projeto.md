@@ -90,10 +90,11 @@ e não uma dependência nem uma prioridade automática do núcleo PIC. Veja o
 
 ### Plataforma pública
 
-O núcleo, a API e o portal estão implantados e processam dados reais. O ponto de
-retomada é estabilização: reconciliar branches antigas e contratos, restaurar
-uma trilha de CI inequívoca e executar com segurança o saneamento das evidências
-GEO antes de impor a nova restrição de unicidade.
+O núcleo, a API e o portal estão implantados e processam dados reais. O bloco
+PMQC estruturado da ficha foi concluído em produção. O ponto de retomada da
+estabilização é executar com segurança o saneamento das evidências GEO antes de
+impor a nova restrição de unicidade e migrar a configuração Railway antes da
+descontinuação do Config as Code atual.
 
 Em 2026-10-11 foi registrada uma nova decisão de produto para a
 [ficha pública](produto/ficha-publica.md): preço não pode ser sua única dimensão
@@ -111,11 +112,21 @@ CI e promoção; e o deployment Railway
 verificada visualmente. A seção **Qualidade do combustível** está, portanto,
 ativa no portal.
 
-Esse rollout não promoveu o contrato nem o core. A API pública ainda devolve o
-payload legado, sem agrupamentos ou ensaios PMQC estruturados; por
-compatibilidade, o portal apresenta o estado neutro previsto, sem inferir
-aprovação ou não conformidade. O schema estruturado continua marcado como
-`candidate-local` e não deve ser usado por integrações de produção.
+Na sequência, o PR #72 do núcleo isolou PMQC das migrações GEO 023/024, migrou o
+CI para o Woodpecker compartilhado e foi mesclado. O pipeline de PR #10 e o
+pipeline de `main` #11 passaram; este último promoveu `main` e `deploy` para
+`8f46c869bcd956dab30ec903d24da8cbfddfebb3`. A suíte do runner executou 788
+testes com PostgreSQL, nenhum ignorado, e mais 25 testes dedicados de contrato.
+
+No Railway, o Migrator `11efd3fe-c865-4ed6-a921-3c4e1bba2f1e` concluiu com
+`SUCCESS` e registrou “nada pendente (22 migrações já aplicadas)”; portanto não
+houve DDL. A API `33982e35-b1ec-4344-b5af-c1a2cb547903` foi então implantada
+com `SUCCESS`, sem redeploy do worker. `/saude` respondeu `HTTP 200`. O smoke da
+ficha `00097ff8-98c0-5d16-823e-66edb77c334c` confirmou 6 agrupamentos e 48
+ensaios PMQC, e a verificação visual no portal mostrou data, fonte, contagens,
+resultado, unidade e classificação sem erros no console. O schema PMQC pode,
+assim, ser consumido em produção; ausência de agrupamentos continua significando
+somente ausência de resultado público vinculado no recorte.
 
 No PR #70 do núcleo, as migrações 023 e 024 implementam o invariante geográfico
 correto: no máximo uma evidência com transação viva por posto+fonte cobrindo o
