@@ -167,6 +167,45 @@ test("saúde e preços exigem somente as chaves estáveis observadas", () => {
   assert.deepEqual(schemas.Saude.properties.estado.enum, ["pronto"]);
 });
 
+test("ficha pública exige PMQC estruturado, derivado, fechado e tri-state", () => {
+  const documento = parse(readFileSync(CONTRATO, "utf8"));
+  const schemas = documento.components.schemas;
+  exigirObjetosFechados(documento, schemas.Posto, "Posto");
+
+  assert.ok(schemas.Posto.required.includes("qualidade_combustivel"));
+  assert.equal(
+    documento.paths["/v1/postos/{posto_id}"].get["x-schema-promocao"]
+      .qualidade_combustivel,
+    "candidate-local",
+  );
+  assert.equal(schemas.QualidadeCombustivel["x-promocao"], "candidate-local");
+  assert.deepEqual(
+    [...schemas.QualidadeCombustivel.required].sort(),
+    ["agrupamentos", "identidade_agrupamento", "limite", "truncado"],
+  );
+  assert.deepEqual(
+    schemas.QualidadeCombustivel.properties.identidade_agrupamento.enum,
+    ["derivada"],
+  );
+  assert.deepEqual(schemas.QualidadeCombustivel.properties.limite.enum, [8]);
+  assert.equal(schemas.QualidadeCombustivel.properties.truncado.type, "boolean");
+  assert.equal(schemas.QualidadeCombustivel.properties.agrupamentos.maxItems, 8);
+  assert.deepEqual(
+    [...schemas.ContagensPMQC.required].sort(),
+    ["conforme", "nao_classificado", "nao_conforme"],
+  );
+  assert.deepEqual(schemas.EnsaioPMQC.properties.conforme.type, ["boolean", "null"]);
+  assert.deepEqual(schemas.EnsaioPMQC.properties.classificacao.enum, [
+    "conforme",
+    "não conforme",
+    "não classificado",
+  ]);
+  for (const campo of ["amostra_id", "sequencia", "localizador", "coordenadas"]) {
+    assert.equal(campo in schemas.AgrupamentoPMQC.properties, false);
+    assert.equal(campo in schemas.EnsaioPMQC.properties, false);
+  }
+});
+
 test("gate recusa ref ausente, operationId duplicado e exemplo incompatível", async () => {
   const pasta = await mkdtemp(join(tmpdir(), "pic-openapi-"));
   try {

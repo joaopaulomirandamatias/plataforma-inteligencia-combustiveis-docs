@@ -7,6 +7,7 @@ Boa parte do que está descrito aqui é **desenho alvo, não runtime**. Um integ
 | Marca da seção | O que significa |
 |---|---|
 | **no ar** | Verificável hoje no runtime público, anônimo. Programe contra isto. |
+| **candidato local** | Contrato e implementação passam juntos nos testes locais, mas ainda não foram promovidos ao runtime público. Não programe produção contra isto. |
 | **desenho, não implementado** | Declarado porque é para onde o sistema vai. Não existe nenhum pedaço disso em produção; a seção diz qual é o efeito prático hoje. |
 
 Não há prazo declarado para nada que esteja marcado como desenho. Quando existir, quem muda primeiro é o `openapi.yaml` — o estado de cada operação mora lá, neste guia só é explicado.
@@ -57,11 +58,33 @@ Enquanto papel de órgão não existir no runtime, as duas seguem em 404 — o m
 
 ## O que o contrato garante — e o que não garante
 
-> **Estado: no ar** para as seis `implemented`; o resto desta seção é justamente sobre o que *não* está.
+> **Estado das rotas: no ar** para as seis `implemented`. **Estado do schema
+> estruturado de PMQC na ficha: candidato local**, indicado por
+> `x-schema-promocao` na operação e `x-promocao` no schema.
+>
+> Desde 2026-10-19, o portal público já contém a seção visual de qualidade, mas
+> a API em produção ainda entrega o payload legado. A interface mostra o estado
+> neutro de compatibilidade; isso não promove o schema candidato nem autoriza
+> clientes a consumirem agrupamentos ou ensaios em produção.
 
 Esta é a distinção mais importante do documento, porque schema de operação servida e schema de operação no papel são visualmente idênticos e valem coisas opostas.
 
-**Para as seis `implemented`, o schema é verificado contra a resposta real.** A suíte do backend (`tests/test_conformidade_contrato.py`) sobe a API, chama cada uma delas e valida o corpo devolvido contra o schema deste arquivo — `Saude`, `PaginaPostos`/`PostoResumo`, `MapaPostos`/`PontoMapa`, `Posto`/`Fato`, `ContextoRegional`/`ItemContextoRegional`/`MediaRegional`, `PaginaPrecos`/`PrecoSemanal`/`FiltrosPrecos` — e também os corpos de erro contra `Problem`. O CI do backend faz checkout deste repositório no **SHA fixado** em `.github/contrato.sha` e roda essa suíte contra PostgreSQL real. Então, para essas seis, derivar projeção, tipos e validação a partir do documento é seguro: o que diverge fica vermelho antes do merge.
+**Para as seis `implemented`, o schema estável é verificado contra a resposta real.** A suíte do backend (`tests/test_conformidade_contrato.py`) sobe a API, chama cada uma delas e valida o corpo devolvido contra o schema deste arquivo — `Saude`, `PaginaPostos`/`PostoResumo`, `MapaPostos`/`PontoMapa`, `Posto`/`Fato`/`QualidadeCombustivel`/`AgrupamentoPMQC`/`EnsaioPMQC`, `ContextoRegional`/`ItemContextoRegional`/`MediaRegional`, `PaginaPrecos`/`PrecoSemanal`/`FiltrosPrecos` — e também os corpos de erro contra `Problem`. O CI do backend faz checkout deste repositório no **SHA fixado** em `.github/contrato.sha` e roda essa suíte contra PostgreSQL real. Durante esta promoção coordenada, o bloco PMQC marcado `candidate-local` é garantia da branch candidata e dos testes locais, não do runtime público; o marcador só pode mudar depois do deploy e do smoke test.
+
+Na ficha, `qualidade_combustivel.identidade_agrupamento` é sempre `derivada` e
+`qualidade_combustivel.agrupamentos` é sempre uma lista. A fonte não fornece um
+identificador estável da amostra física: a API agrupa pelo identificador do
+ponto publicado pela F02, data, produto e coordenadas da coleta, sem afirmar que
+os ensaios pertencem à mesma amostra física. A lista contém até oito
+agrupamentos mais recentes; `limite` é `8` e `truncado` informa se existem
+agrupamentos adicionais, sem publicar total. Lista vazia significa “nenhum
+resultado público vinculado neste recorte”, não aprovação. Cada agrupamento
+traz contagens e ensaios; em cada
+ensaio, `conforme` preserva o `boolean|null` da fonte e `classificacao` explicita
+`conforme`, `não conforme` ou `não classificado`. Não converta `null` para falso
+e não derive score ou classificação global do agrupamento. A organização visual
+e as regras de linguagem estão na
+[especificação da ficha pública](../produto/ficha-publica.md).
 
 **Para `planned` e `restricted`, o schema é desenho nunca exercido.** `PaginaHistorico`, `GrupoSocietario`, `PaginaRanking`, `Assinatura`, `Dataset` jamais foram produzidos por código nenhum. São a forma pretendida, não a forma observada — nenhum teste os confronta com uma resposta, porque não existe resposta. Gerar cliente, migração ou tabela a partir deles é repetir exatamente o erro que este documento corrige: tratar o desenho como se fosse o sistema.
 

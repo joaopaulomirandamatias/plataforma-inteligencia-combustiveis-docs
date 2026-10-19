@@ -1,6 +1,6 @@
 # Status canônico do projeto
 
-**Atualizado em:** 2026-10-11
+**Atualizado em:** 2026-10-19
 
 **Escopo:** Plataforma de Inteligência de Combustíveis (PIC)
 
@@ -95,15 +95,40 @@ retomada é estabilização: reconciliar branches antigas e contratos, restaurar
 uma trilha de CI inequívoca e executar com segurança o saneamento das evidências
 GEO antes de impor a nova restrição de unicidade.
 
+Em 2026-10-11 foi registrada uma nova decisão de produto para a
+[ficha pública](produto/ficha-publica.md): preço não pode ser sua única dimensão
+principal. Cadastro, amostras PMQC, cada ensaio/resultado/unidade, atos públicos,
+frescor e metodologia devem ser organizados por seção. Isso é **especificação
+alvo**, não evidência de disponibilidade em produção.
+
+Em 2026-10-19, a camada visual desse primeiro bloco foi promovida ao portal
+público. Os PRs #35 e #36 do portal foram mesclados; as branches `main` e
+`deploy` ficaram alinhadas em
+`d9b93a36e5f0afb1b2f2eb43a274b3496e577bc9`; o pipeline Woodpecker #47 concluiu
+CI e promoção; e o deployment Railway
+`c8513d09-6802-440a-bee7-a31368e2fd74` terminou com `SUCCESS`. O smoke retornou
+`HTTP 200` e a ficha do posto `304d2b1e-e655-5f50-8db9-b8445179ce25` foi
+verificada visualmente. A seção **Qualidade do combustível** está, portanto,
+ativa no portal.
+
+Esse rollout não promoveu o contrato nem o core. A API pública ainda devolve o
+payload legado, sem agrupamentos ou ensaios PMQC estruturados; por
+compatibilidade, o portal apresenta o estado neutro previsto, sem inferir
+aprovação ou não conformidade. O schema estruturado continua marcado como
+`candidate-local` e não deve ser usado por integrações de produção.
+
 No PR #70 do núcleo, as migrações 023 e 024 implementam o invariante geográfico
 correto: no máximo uma evidência com transação viva por posto+fonte cobrindo o
 mesmo instante D, admitindo segmentos de validade disjuntos. A 024 é o
 forward-fix que preserva a matriz C×D — A `[D1,D3)` e B `[D3,∞)` no conhecimento
 corrente, sem apagar A `[D1,∞)` do histórico anterior — e serializa a origem F01
 contra o refresh cadastral. Em 2026-10-11, a suíte completa em PostgreSQL e o
-CI remoto do PR estavam aprovados; o trabalho seguia em revisão e **não estava
-comprovado como mesclado, migrado ou ativo em produção**. O saneamento e os
-gates do runbook continuam obrigatórios.
+CI remoto do PR estavam aprovados. Em 2026-10-19, o PR permanecia sem
+implantação por **NO-GO operacional**: não havia cobertura atual de backup/PITR
+para executar com segurança a sequência das migrações 023/024. O contrato e o
+core não estão comprovados como mesclados, migrados ou ativos em produção. O
+saneamento, o backup restaurável, a decisão de PITR e os gates do runbook
+continuam obrigatórios.
 
 O [status de F1](status-f1-implementacao.md) registra a engenharia pré-rótulo.
 Seu próximo avanço não é fabricar mais resultados sintéticos: requer snapshots
@@ -114,6 +139,15 @@ holdout.
 
 G1 e G2 possuem implementação, testes e serviços implantados. Permanecem
 **abertos para aceite operacional**. O aceite mínimo deve registrar:
+
+Em 2026-10-15, a conta piloto foi auditada contra a configuração do serviço e
+foi confirmado drift entre o e-mail esperado e a identidade já persistida no
+Keycloak. O cadastro persistido foi reconciliado em produção; sujeito, nome de
+usuário, senha e TOTP foram preservados, a conta permaneceu ativa e uma
+verificação posterior confirmou a ausência de ações obrigatórias. O utilitário
+e o runbook desse diagnóstico foram integrados no repositório de gestão com CI
+verde. Essa correção restabelece o identificador de acesso esperado, mas não
+substitui o aceite G1/G2 abaixo.
 
 1. dois atores OIDC reais, com papéis diferentes;
 2. duas organizações e a matriz negativa de acesso cruzado;

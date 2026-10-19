@@ -68,7 +68,7 @@ Essa lacuna é técnica antes de ser comercial. É isso que a torna defensável:
 
 | Setor | Pergunta sem resposta hoje | Entrega |
 |---|---|---|
-| **Consumidor** | Este posto tem histórico de problema? | Ficha factual: não conformidades PMQC datadas com fonte, situação cadastral, preço vs. região, direito de resposta do posto |
+| **Consumidor** | Este posto tem histórico de problema? | [Ficha factual organizada](produto/ficha-publica.md): cadastro, preços e contexto regional, amostras PMQC com cada ensaio/resultado/unidade, atos públicos e direito de resposta, sempre com fonte e data |
 | **Órgãos fiscalizadores**<br>(IPEM, ANP, Procon, SEFAZ) | Onde fiscalizar primeiro com orçamento limitado? | Ranking de risco com razões, dossiê exportável, mapa de cobertura, alerta de vencimento de aferição |
 | **Distribuidoras / bandeiras** | Minha rede tem posto comprometendo a marca? | Monitoramento da rede, alerta precoce, benchmark contra concorrentes |
 | **Postos idôneos** | Como provo que sou confiável? | Selo de transparência auditável, benchmark regional, autodiagnóstico |
@@ -100,6 +100,13 @@ Essa lacuna é técnica antes de ser comercial. É isso que a torna defensável:
 | SEFAZ / NFC-e | Registro fiscal | Restrito | Fase 3 |
 
 **Nenhuma fonte da v1 depende de app, sensor ou adesão de posto.** É isso que torna o cronograma crível.
+
+Na borda pública, preço não resume a ficha. Tudo que for público, pertinente ao
+estabelecimento e seguro para republicação deve ser apresentado por dimensão,
+sem misturar cadastro, preço, qualidade, metrologia e atos oficiais. A
+especificação de conteúdo, estados de ausência e critérios de aceite está em
+[Ficha pública do posto](produto/ficha-publica.md). “Público na origem” não
+elimina os gates de minimização, identidade, temporalidade e linguagem.
 
 ### Ativo estratégico
 

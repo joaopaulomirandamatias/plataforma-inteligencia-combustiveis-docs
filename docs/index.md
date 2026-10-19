@@ -13,6 +13,7 @@ A porta de entrada decide se a documentação é usada ou ignorada. Trilhas na o
 | Cientista de dados / ML | [backtesting](ml/backtesting.md) → [governança de modelo](ml/governanca-de-modelo.md) → [model cards](ml/modelos/README.md) → [modelo bitemporal](dados/modelo-bitemporal.md) (armadilha nº 3!) | 1ª semana |
 | Fiscal / órgão parceiro | [guia de consumo da API](api/guia-de-consumo.md) → [webhooks](api/webhooks.md) → plano diretor §4 (papéis e escopo) → [PDF didático](apresentacao/plataforma-v1-didatico.pdf) | 1 tarde |
 | Integrador / consumidor da API | [guia de consumo](api/guia-de-consumo.md) → [openapi.yaml](api/openapi.yaml) → [webhooks](api/webhooks.md) → [catálogo de eventos](dados/eventos/README.md) | 1 tarde |
+| Produto / UX público | [ficha pública](produto/ficha-publica.md) → [política de linguagem](agentes/politica-de-linguagem.md) → [catálogo de fontes](dados/catalogo-fontes.md) → [modelo bitemporal](dados/modelo-bitemporal.md) | 1 tarde |
 | DPO / jurídico | **[RIPD](conformidade/lgpd/ripd.md)** (pendências no §8) → [cofre](seguranca/cofre-de-identidade.md) → [trilha de auditoria](seguranca/trilha-de-auditoria.md) → [ADR-004](arquitetura/adr/adr-004-cofre-de-identidade.md) e [ADR-005](arquitetura/adr/adr-005-score-restrito-a-orgaos.md) | 1 tarde |
 | Gestor / orientador | [README](../README.md) → [status atual](status-projeto.md) → [projeto v1](projeto-v1.md) → [PDF didático](apresentacao/plataforma-v1-didatico.pdf) → ADRs 001/005/006 | 1 hora |
 

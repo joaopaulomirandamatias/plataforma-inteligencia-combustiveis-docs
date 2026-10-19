@@ -225,6 +225,8 @@ paths:
       summary: Ficha do posto (campos conforme papel)
       operationId: getPosto
       x-estado: implemented
+      x-schema-promocao:
+        qualidade_combustivel: candidate-local
       security: []
       parameters:
         - $ref: "#/components/parameters/PostoId"
@@ -669,7 +671,8 @@ components:
 
     Posto:
       type: object
-      required: [posto_id, versao_snapshot, as_of]
+      additionalProperties: false
+      required: [posto_id, versao_snapshot, as_of, qualidade_combustivel]
       properties:
         posto_id: { type: string }
         versao_snapshot: { type: string, description: 'versão as-of exibida — todo número é reproduzível. Até existir snapshot materializado, formato provisório `cargas/F01:n,F02:n,F03:n`, resolvível contra ingestao.carga' }
@@ -686,6 +689,7 @@ components:
           description: frescor por fonte no momento da resposta
           items:
             type: object
+            additionalProperties: false
             properties:
               fonte: { type: string }
               carga_id: { type: integer }
@@ -695,18 +699,114 @@ components:
         fatos_recentes:
           type: array
           items: { $ref: "#/components/schemas/Fato" }
+        qualidade_combustivel:
+          $ref: "#/components/schemas/QualidadeCombustivel"
         contraditorio:
           type: array
           description: Manifestações do posto sobre fatos exibidos.
           items:
             type: object
+            additionalProperties: false
             properties:
               fato_ref: { type: string }
               manifestacao: { type: string }
               data: { type: string, format: date }
 
+    QualidadeCombustivel:
+      type: object
+      additionalProperties: false
+      x-promocao: candidate-local
+      required: [identidade_agrupamento, limite, truncado, agrupamentos]
+      description: >
+        Resultados públicos do PMQC organizados em agrupamentos derivados. A
+        fonte não fornece identificador estável da amostra física; portanto,
+        cada agrupamento usa o identificador do ponto publicado pela F02, data,
+        produto e coordenadas da coleta como chave técnica e não prova,
+        sozinho, que todos os ensaios vieram da mesma amostra física.
+        `agrupamentos` vazio significa somente que nenhum resultado público
+        está vinculado ao posto neste recorte; nunca significa conformidade.
+      properties:
+        identidade_agrupamento:
+          type: string
+          enum: [derivada]
+          description: declara explicitamente que a unidade exibida não é uma amostra física identificada pela fonte
+        limite:
+          type: integer
+          enum: [8]
+          description: quantidade máxima de agrupamentos devolvidos neste recorte
+        truncado:
+          type: boolean
+          description: verdadeiro quando existem agrupamentos adicionais além do recorte devolvido
+        agrupamentos:
+          type: array
+          maxItems: 8
+          description: >
+            Até oito agrupamentos mais recentes. Consulte `truncado` para saber
+            se o recorte é não exaustivo. A ordenação é decrescente por data de
+            coleta, com desempate técnico determinístico no servidor; a chave
+            interna de desempate não é pública.
+          items: { $ref: "#/components/schemas/AgrupamentoPMQC" }
+
+    AgrupamentoPMQC:
+      type: object
+      additionalProperties: false
+      required:
+        - data_coleta
+        - produto
+        - grupo_produto
+        - fonte
+        - contagens
+        - ensaios
+      properties:
+        data_coleta: { type: string, format: date }
+        produto: { type: string, description: produto como publicado pela fonte }
+        grupo_produto:
+          type: [string, "null"]
+          description: grupo normalizado do produto quando a fonte o permite
+        fonte: { type: string }
+        contagens: { $ref: "#/components/schemas/ContagensPMQC" }
+        ensaios:
+          type: array
+          items: { $ref: "#/components/schemas/EnsaioPMQC" }
+
+    ContagensPMQC:
+      type: object
+      additionalProperties: false
+      required: [conforme, nao_conforme, nao_classificado]
+      properties:
+        conforme: { type: integer, minimum: 0 }
+        nao_conforme: { type: integer, minimum: 0 }
+        nao_classificado: { type: integer, minimum: 0 }
+
+    EnsaioPMQC:
+      type: object
+      additionalProperties: false
+      required:
+        - ensaio
+        - resultado
+        - unidade
+        - conforme
+        - classificacao
+        - fonte
+        - data_coleta
+      properties:
+        ensaio: { type: string }
+        resultado:
+          type: [string, "null"]
+          description: valor textual publicado pela fonte; não é convertido em score
+        unidade: { type: [string, "null"] }
+        conforme:
+          type: [boolean, "null"]
+          description: valor tri-state da fonte; `null` significa não classificado
+        classificacao:
+          type: string
+          enum: [conforme, não conforme, não classificado]
+        fonte: { type: string }
+        data_coleta: { type: string, format: date }
+
     Fato:
       type: object
+      additionalProperties: false
       required: [tipo, data_validade, fonte, localizador]
       properties:
         tipo: { type: string, enum: [pmqc, autuacao, aferição, cadastro, preco, atendimento] }

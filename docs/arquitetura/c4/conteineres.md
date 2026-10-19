@@ -137,7 +137,7 @@ flowchart TB
 
 | Aspecto | Especificação |
 |---|---|
-| Responsabilidade | Órgão: ranking, casos, grafo, contraditório recebido. Pública: fatos datados com fonte, selo, direito de resposta |
+| Responsabilidade | Órgão: ranking, casos, grafo, contraditório recebido. Pública: [cadastro, preços, qualidade/ensaios e demais fatos públicos organizados](../../produto/ficha-publica.md), sempre datados e com fonte, selo e direito de resposta |
 | Tecnologia | Next.js (pública em SSG atrás de CDN) |
 | Possui | Estado de UI apenas |
 | **Não possui** | Dado próprio; qualquer chamada fora do gateway |
