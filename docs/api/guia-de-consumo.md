@@ -61,6 +61,11 @@ Enquanto papel de órgão não existir no runtime, as duas seguem em 404 — o m
 > **Estado das rotas: no ar** para as seis `implemented`. **Estado do schema
 > estruturado de PMQC na ficha: candidato local**, indicado por
 > `x-schema-promocao` na operação e `x-promocao` no schema.
+>
+> Desde 2026-10-19, o portal público já contém a seção visual de qualidade, mas
+> a API em produção ainda entrega o payload legado. A interface mostra o estado
+> neutro de compatibilidade; isso não promove o schema candidato nem autoriza
+> clientes a consumirem agrupamentos ou ensaios em produção.
 
 Esta é a distinção mais importante do documento, porque schema de operação servida e schema de operação no papel são visualmente idênticos e valem coisas opostas.
 

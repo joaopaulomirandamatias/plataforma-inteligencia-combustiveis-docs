@@ -4,6 +4,12 @@
 > alvo; não afirma que todas as seções já estejam disponíveis no portal ou na
 > API. O [status canônico](../status-projeto.md) continua sendo a fonte para
 > distinguir desenho, implementação local e produção.
+>
+> **Recorte observado em 2026-10-19:** a seção visual **Qualidade do
+> combustível** está em produção no portal, mas a API pública ainda fornece o
+> payload legado. Por isso a seção exibe o estado neutro de compatibilidade, sem
+> agrupamentos ou ensaios. O contrato estruturado descrito abaixo continua
+> candidato e não está publicado no core.
 
 ## Objetivo
 
@@ -229,7 +235,7 @@ histórico.
 | Fonte/dimensão | Conteúdo público elegível | Organização na ficha | Estado do requisito |
 |---|---|---|---|
 | F01 — cadastro ANP | CNPJ PJ, bandeira, autorização, endereço e datas | Cadastro | Já existe parcialmente |
-| F02 — PMQC | Agrupamento derivado, produto, ensaio, resultado, unidade e classificação triestado | Qualidade, por agrupamento e ensaio | Contrato e implementação local concluídos; revisão, CI, promoção e produção pendentes |
+| F02 — PMQC | Agrupamento derivado, produto, ensaio, resultado, unidade e classificação triestado | Qualidade, por agrupamento e ensaio | Seção visual em produção com estado legado neutro; contrato/core estruturados candidatos e não implantados |
 | F03 — preços ANP | Valor, unidade, produto, semana e cobertura regional | Preços e médias | Já existe parcialmente |
 | GEO-ANP/GEO-01 | Posição oficial ou inferida, com origem | Mapa/localização | Já existe parcialmente |
 | F04 — atos ANP | Processo, ato, situação e datas, se a granularidade pública permitir | Linha do tempo oficial | Pendente de fonte/contrato |
@@ -240,8 +246,8 @@ histórico.
 ## Dependências de implementação
 
 O portal já exibe cadastro, histórico de preços e médias recentes. Em
-2026-10-15, o primeiro bloco PMQC desta especificação foi concluído **apenas em
-branches de integração coordenadas**:
+2026-10-15, o primeiro bloco PMQC desta especificação foi concluído em branches
+de integração coordenadas:
 
 - o contrato passou a exigir `qualidade_combustivel.identidade_agrupamento` e
   `agrupamentos`, com objetos fechados e classificação triestado;
@@ -251,16 +257,27 @@ branches de integração coordenadas**:
   hidratação e avisos metodológicos;
 - as suítes locais de contrato, core e portal passaram.
 
-Isso não prova disponibilidade remota ou produção. Para cumprir esta
-especificação por inteiro ainda é necessário:
+Em 2026-10-19, somente a camada do portal foi promovida. Os PRs #35/#36 foram
+mesclados, `main` e `deploy` ficaram em
+`d9b93a36e5f0afb1b2f2eb43a274b3496e577bc9`, o pipeline Woodpecker #47 passou em
+CI e promoção e o deployment Railway
+`c8513d09-6802-440a-bee7-a31368e2fd74` terminou com `SUCCESS`. O smoke retornou
+`HTTP 200` e confirmou visualmente a ficha
+`304d2b1e-e655-5f50-8db9-b8445179ce25`. Como o runtime do core permanece no
+payload legado, a seção **Qualidade do combustível** mostra o estado neutro e
+não inventa agrupamentos, ensaios nem classificações.
 
-1. promover contrato, core e portal na ordem coordenada, com o core fixando o
-   SHA do contrato e cada repositório passando pelo próprio CI;
-2. executar smoke test da resposta e da ficha implantadas, inclusive payload de
-   hidratação e viewport móvel;
-3. definir paginação/limites para históricos extensos e preservar `as_of` em
+Para cumprir esta especificação por inteiro ainda é necessário:
+
+1. remover o NO-GO de backup/PITR do núcleo e executar com segurança a sequência
+   das migrações 023/024 do PR #70;
+2. promover contrato e core na ordem coordenada, com o core fixando o SHA do
+   contrato e cada repositório passando pelo próprio CI;
+3. executar smoke test da resposta estruturada implantada e da ficha com
+   agrupamentos reais, inclusive payload de hidratação e viewport móvel;
+4. definir paginação/limites para históricos extensos e preservar `as_of` em
    todas as consultas;
-4. implementar as demais dimensões públicas elegíveis e seus gates, sem
+5. implementar as demais dimensões públicas elegíveis e seus gates, sem
    antecipar F06 por posto enquanto o NO-GO de privacidade estiver aberto.
 
 A reconciliação segue o contrato de
