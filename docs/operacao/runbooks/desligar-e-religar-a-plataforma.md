@@ -71,18 +71,64 @@ Cada sonda abaixo existe porque prova uma coisa que as outras não provam. Use f
 
 Ao subir, o worker roda a agenda e **ingere o atraso acumulado de uma vez**. A agenda é orientada a vencimento: oito dias parados são oito dias vencidos. Em 2026-08-28 o cadastro foi de **45.762 para 46.510 postos**.
 
-**Isso é o desenho funcionando, não anomalia** — e precisa estar previsto aqui para ninguém abrir incidente de "carga duplicada" em cima do comportamento correto. O sinal preocupante é o oposto: contagem **parada** depois do religar, que aponta worker sem cron, worker que subiu com papel de leitura, ou volume não montado.
+**Isso é o desenho funcionando, não anomalia** — e precisa estar previsto aqui
+para ninguém abrir incidente de "carga duplicada" em cima do comportamento
+correto. O sinal preocupante é o oposto: contagem **parada** depois do religar,
+quando não existe pausa operacional documentada, aponta worker sem cron, worker
+que subiu com papel de leitura ou volume não montado.
 
 Um ressalva: o gate de volume anômalo do dump mensal continua valendo durante a recuperação do atraso. Salto grande **na F05** não é este efeito colateral — é o [runbook do dump](dump-mensal-ausente-ou-anomalo.md).
 
 ## Cron
 
-O worker foi observado em 2026-10-11 com o cron `0 4 * * *` e o volume em
-`/data`. O agendamento é configuração de serviço e sobrevive ao `down`, mas
-**conferir é obrigatório**, porque a falha é muda: worker sem cron não gera erro
-nenhum — só nunca mais ingere, e o sintoma aparece dias depois como "os dados
-estão velhos", longe da causa. A confirmação real não é ver o cron na tela; é a
-contagem andar no dia seguinte.
+Em operação normal, o worker foi observado em 2026-10-11 com o cron
+`0 4 * * *` e o volume em `/data`. O agendamento é configuração de serviço e
+sobrevive ao `down`, mas **conferir é obrigatório**: ausência acidental de cron
+é uma falha muda — a ingestão para e o sintoma só aparece dias depois como
+"os dados estão velhos". A confirmação real não é ver o cron na tela; é a
+contagem andar no ciclo seguinte.
+
+Existe uma exceção deliberada e fail-closed. Enquanto a F06 depender do host
+oficial em `NXDOMAIN`, o runbook específico do backend
+`docs/operacao-migracoes.md`, seção **Runbook dos dois one-shots por grupo de
+fontes**, exige `cron=null` para a agenda completa. Nesse estado, cron nulo não
+é defeito: é uma pausa operacional registrada. As fontes ANP podem rodar de
+forma controlada pelo config path `/railway.worker-anp.json`; a F06 fica isolada
+em `/railway.worker-f06.json`, sem transformar indisponibilidade em sucesso.
+
+### Pausa operacional de 2026-10-19
+
+O cron do serviço `pic-worker`
+(`7b607d55-fb96-4af4-928b-da4f3a9d730d`) foi alterado de `0 4 * * *` para
+`null` antes da execução seguinte, prevista para aproximadamente `04:00Z`. A
+mudança preservou o volume `/data`, a política de restart `NEVER` e o último
+deployment `28bccddb-af92-4f99-b8c6-3e385159e59e` em `SUCCESS`; não houve
+redeploy. Antes da pausa, o config path observado era `/railway.worker.json`.
+A pós-condição confirmou `cronSchedule=null`.
+
+O motivo foi a combinação de dois riscos observados: tentativa diária inútil da
+F06 contra o host em `NXDOMAIN` e reingestões GEO nos dias 13, 15, 17 e
+19/10 antes do saneamento das evidências. O impacto esperado é explícito:
+**não há ingestão diária automática** enquanto a pausa estiver vigente. API e
+portal continuam servindo o snapshot já publicado.
+
+Para atualizar as fontes ANP durante a pausa, execute somente o one-shot ANP do
+runbook específico. Antes dele, prove alinhamento de SHA, Migrator concluído e
+contagens prévias; depois, confira resumo e deltas por fonte. O PR #74 do
+backend corrigiu o falso verde: falha estruturada fecha com `1`, F06 em
+`NXDOMAIN` fecha com `5` e ausência esperada de publicação em F02/F03 preserva
+`0`. Os pipelines #14/#15 promoveram a correção em
+`main == deploy == 51eb12dd8ba95fc3eb90832287d3f58c83928b77`, mas o worker
+não foi reimplantado nem executado. Por isso o primeiro one-shot desse SHA ainda
+precisa provar a propagação do exit code no runtime; não use `SUCCESS` do
+deployment como substituto do resumo, logs e contagens. Esse caminho
+operacional não remove o NO-GO das migrações GEO 023/024 nem autoriza
+promovê-las antes do backup restaurável e do saneamento exigidos.
+
+O cron normal só pode ser restaurado depois de **prova F06 bem-sucedida no
+runtime Railway e um ciclo completo sem erros**. DNS voltar a resolver, o
+serviço continuar em `SUCCESS` ou o one-shot ANP concluir, isoladamente, não
+abrem esse gate.
 
 ## Se algo não voltar
 

@@ -2,6 +2,11 @@
 
 Atualizado em 2026-08-08 após promoção oficial do F1-15.
 
+> **Fotografia histórica:** os SHAs, deployments e cron abaixo descrevem o ciclo
+> de promoção do F1-15, não o estado operacional corrente. Para operação, use o
+> [status canônico](status-projeto.md). Em 2026-10-19, o cron do worker foi
+> pausado deliberadamente (`null`) conforme o runbook vigente.
+
 Este documento separa quatro estados:
 
 1. **implementado** — existe código, migração, teste ou artefato;
@@ -21,7 +26,7 @@ Este documento separa quatro estados:
 - `/saude` respondeu **HTTP 200** após o rollout.
 - Migrações 012, 013, 014, 015 e 016 foram aplicadas pelo fluxo normal de inicialização; nenhuma foi aplicada manualmente.
 - Postgres, `pic-api`, `pic-web` e `pic-worker` estão em estado `SUCCESS` no ambiente de produção.
-- O worker mantém o cron `0 6 * * *`.
+- Na evidência daquele ciclo, o worker mantinha o cron `0 6 * * *`.
 - Issue #2 de bloqueio do GitHub Actions foi encerrada como resolvida.
 
 ## Cards F1
