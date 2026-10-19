@@ -94,11 +94,31 @@ Projeto: `Plataforma Combustível`.
 | Serviço | Source | Proteção | Health/readiness |
 |---|---|---|---|
 | `pic-api` | backend / `deploy` | CI backend | `/saude`, 30 s |
-| `pic-worker` | backend / `deploy` | CI backend | cron `0 4 * * *`, volume `/data` (observado em 2026-10-11) |
+| `pic-worker` | backend / `deploy` | CI backend | cron `null` por pausa operacional, volume `/data` (confirmado em 2026-10-19) |
 | `pic-web` | frontend / `deploy` | CI frontend | `/`, 30 s |
 | Postgres | serviço gerenciado | — | Railway |
 
-A API e o worker compartilham o artefato, mas o worker preserva `PIC_MODO`, cron, política `NEVER` e o volume existente.
+A API e o worker compartilham o artefato, mas o worker preserva `PIC_MODO`,
+política `NEVER` e o volume existente. O cron é estado operacional do serviço:
+em operação normal era `0 4 * * *`; em 2026-10-19 foi levado a `null`, sem
+redeploy, por causa da F06 em `NXDOMAIN` e das reingestões GEO anteriores ao
+saneamento. API e portal seguem servindo o snapshot publicado, mas nenhuma
+ingestão diária automática ocorre durante a pausa.
+
+Atualização controlada das fontes ANP continua possível pelo one-shot
+`/railway.worker-anp.json`, com SHA, Migrator e contagens verificados antes e
+depois. A F06 permanece isolada em `/railway.worker-f06.json`. A volta do cron
+depende de prova F06 bem-sucedida no Railway e de um ciclo completo sem erros.
+O one-shot não altera o NO-GO das migrações GEO 023/024 nem substitui seu gate
+de backup restaurável e saneamento.
+O PR #74 do backend fechou o falso verde: `quarentena`, `sem_deposito`,
+`corrompido` e status desconhecido encerram a agenda com erro; F06 em `NXDOMAIN`
+usa o exit code `5`; e ausência esperada de publicação em F02/F03 continua em
+`0`. Os pipelines Woodpecker #14 e #15 passaram e promoveram
+`main == deploy == 51eb12dd8ba95fc3eb90832287d3f58c83928b77`. O worker não
+foi reimplantado nem executado, portanto o operador ainda deve conferir resumo,
+logs e deltas no primeiro one-shot desse SHA. O procedimento detalhado está em
+`docs/operacao-migracoes.md` no repositório do backend.
 
 ## Watch paths
 

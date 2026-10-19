@@ -128,6 +128,41 @@ resultado, unidade e classificação sem erros no console. O schema PMQC pode,
 assim, ser consumido em produção; ausência de agrupamentos continua significando
 somente ausência de resultado público vinculado no recorte.
 
+O PR #73 fixou o núcleo no contrato documental de produção
+`46b4f535462e44edf79a5e3c0c2bb5cffe6dd8fa`. Os pipelines Woodpecker #12 e
+#13 passaram e promoveram `main`/`deploy` para
+`09b02acebaa7e583495678a083e8cfb13bad0772`. Como esse movimento alterou apenas
+o lock reprodutível do contrato, não houve novo deployment Railway da API.
+
+Também em 2026-10-19, a agenda automática do `pic-worker`
+(`7b607d55-fb96-4af4-928b-da4f3a9d730d`) foi pausada de forma deliberada: o
+cron `0 4 * * *` passou a `null`, com pós-condição confirmada. Não houve
+redeploy; o deployment `28bccddb-af92-4f99-b8c6-3e385159e59e` permaneceu em
+`SUCCESS`, com restart `NEVER` e volume `/data`. A pausa evita novas tentativas
+diárias da F06 em `NXDOMAIN` e novas reingestões GEO antes do saneamento — estas
+foram observadas em 13, 15, 17 e 19/10. API e portal continuam servindo o
+snapshot publicado, mas os dados não recebem atualização diária automática
+enquanto esse estado durar.
+
+As fontes ANP podem ser atualizadas de modo controlado pelo one-shot
+`/railway.worker-anp.json`, após prova do SHA, Migrator e contagens. A F06 fica
+isolada em `/railway.worker-f06.json`. A agenda completa só volta depois de uma
+prova F06 bem-sucedida no runtime Railway e de um ciclo completo sem erros. O
+one-shot não remove o NO-GO das migrações GEO 023/024 nem substitui o backup
+restaurável e o saneamento exigidos para elas.
+
+O PR #74 corrigiu o falso verde da agenda no código: falhas estruturadas fecham
+com exit `1`, F06 em `NXDOMAIN` fecha com `5`, F02/F03 sem publicação esperada
+continuam em `0` e status desconhecido falha fechado. Os pipelines Woodpecker
+#14 e #15 passaram sem skips e promoveram
+`main == deploy == 51eb12dd8ba95fc3eb90832287d3f58c83928b77`. O serviço
+`pic-worker` não foi reimplantado nem executado; continua no deployment anterior
+com cron `null`. O primeiro one-shot controlado desse SHA ainda deve provar a
+propagação do exit code no runtime, e logs, resumos e deltas continuam
+obrigatórios. O procedimento detalhado está em
+`docs/operacao-migracoes.md` no repositório do núcleo, e a interpretação da
+pausa no runbook de [desligar/religar](operacao/runbooks/desligar-e-religar-a-plataforma.md#cron).
+
 No PR #70 do núcleo, as migrações 023 e 024 implementam o invariante geográfico
 correto: no máximo uma evidência com transação viva por posto+fonte cobrindo o
 mesmo instante D, admitindo segmentos de validade disjuntos. A 024 é o
