@@ -1,6 +1,6 @@
 # Status canônico do projeto
 
-**Atualizado em:** 2026-10-19
+**Atualizado em:** 2026-10-20
 
 **Escopo:** Plataforma de Inteligência de Combustíveis (PIC)
 
@@ -128,6 +128,23 @@ resultado, unidade e classificação sem erros no console. O schema PMQC pode,
 assim, ser consumido em produção; ausência de agrupamentos continua significando
 somente ausência de resultado público vinculado no recorte.
 
+Uma verificação em 2026-10-20 refinou essa conclusão para a ficha
+`304d2b1e-e655-5f50-8db9-b8445179ce25`. A competência `2026-05` publicada pela
+fonte contém 72 linhas PMQC associáveis ao estabelecimento, mas essa competência
+não estava no snapshot produtivo: a entrega da F02 mudou de CSV direto para ZIP
+e o backfill correspondente ainda não havia sido executado. Portanto,
+`agrupamentos: []` nessa ficha é uma lacuna de cobertura entre fonte e produção,
+não evidência de que a fonte não possui testes do posto.
+
+A próxima iteração visual, ainda sem evidência de promoção no momento deste
+registro, mantém no topo apenas o resumo factual do recorte e coloca um cartão
+no Histórico oficial para cada agrupamento derivado, em ordem cronológica. O
+cartão expõe produto, contagens triestado, data e fonte; os ensaios ficam em
+disclosure e repetem sua data e fonte. Respostas legadas sem o campo estruturado
+continuam em fallback neutro. Demais fatos só entram por allowlist e contrato
+público: F04 e IPEM ainda não têm contrato aprovado para a ficha, e F06
+permanece bloqueada pelo gate de privacidade.
+
 O PR #73 fixou o núcleo no contrato documental de produção
 `46b4f535462e44edf79a5e3c0c2bb5cffe6dd8fa`. Os pipelines Woodpecker #12 e
 #13 passaram e promoveram `main`/`deploy` para
@@ -206,14 +223,17 @@ qualificador **tecnicamente**.
 
 ## Próxima rodada recomendada
 
-1. **Estabilização:** preservar trabalho local, reconciliar branches e PRs,
+1. **Cobertura F02:** adaptar e provar a ingestão da entrega ZIP e executar o
+   backfill controlado de `2026-05`, verificando as 72 linhas do posto observado,
+   deduplicação, reconciliação e o novo payload antes de interpretar ausências.
+2. **Estabilização:** preservar trabalho local, reconciliar branches e PRs,
    recuperar gates de CI e concluir a migração de configuração do Railway para
    `.railway/railway.ts` antes de 2026-12-01.
-2. **Piloto de gestão:** executar o aceite G1/G2 com 2–5 unidades reais e guardar
+3. **Piloto de gestão:** executar o aceite G1/G2 com 2–5 unidades reais e guardar
    as evidências do fluxo e das falhas.
-3. **Frente institucional em paralelo:** iniciar o pedido F09 ao Inmetro/Ipem,
+4. **Frente institucional em paralelo:** iniciar o pedido F09 ao Inmetro/Ipem,
    sem bloquear o piloto por um calendário externo.
-4. **Evidência científica:** depois de estabilizar o núcleo, executar a fase
+5. **Evidência científica:** depois de estabilizar o núcleo, executar a fase
    empírica humana de F1.
 
 Aplicativo, telemetria, SEFAZ completa e novas frentes de IA não são o próximo
