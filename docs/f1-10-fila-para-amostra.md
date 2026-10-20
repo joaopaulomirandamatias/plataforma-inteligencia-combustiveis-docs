@@ -24,11 +24,23 @@ A ponte não decide identidade e não usa o rótulo histórico F1-01 como verdad
 
 ## Candidatos elegíveis
 
-Por padrão, somente candidatos com:
+Por padrão, somente candidatos sem decisão e pertencentes a um dos contratos
+F1-09 reconhecidos:
 
-- `metodo = blocking-similaridade-f1-09`;
-- envelope `schema_versao = f1-09-v1`;
+- `blocking-similaridade-f1-09` ↔ `f1-09-v1`;
+- `blocking-similaridade-f1-09-f02-contexto-v1` ↔
+  `f1-09-f02-contexto-v1`;
 - **sem decisão em `identidade.decisao_ligacao`**.
+
+Método e schema formam um par fechado: misturá-los ou apresentar um método
+desconhecido falha alto. A inclusão do contrato F02 é aditiva e não altera nem
+regrava candidatos F03 do contrato-base.
+
+> O suporte ao par F02 contextual é experimental. O F1-12 v2 já fecha os gates
+> estruturais de manifesto homogêneo, proveniências GEO e digest do envelope,
+> mas a geração produtiva de pacote continua bloqueada até o dry-run integral
+> das 801 pendências descrito no
+> [F1-09](f1-09-pipeline-candidatos.md#gate-das-801-pendências-f02-de-maio2026).
 
 A exclusão da decisão F1-01 evita que a nova avaliação independente reutilize, por padrão, pares já tratados por um fluxo humano anterior. A leitura com `somente_pendentes=false` existe para auditoria, não como padrão de desenho experimental.
 
@@ -69,6 +81,28 @@ Não são convertidos para `EvidenciaRevisao`:
 - threshold/destino.
 
 Esses elementos continuam no artefato interno para auditoria e análise posterior.
+
+No contrato contextual F02, `revisao.campos` recebe apenas uma projeção factual
+para a revisão humana:
+
+- contagens de cobertura geográfica e razões de presença/ausência;
+- um resumo por comparação F01×F02, somente quando ambos os lados possuem
+  ponto válido, com coordenadas, tipo, fonte, hash e distância;
+- um resumo das datas cadastrais F01, da data de coleta F02 e das razões
+  temporais.
+
+Essa projeção **não é o envelope geoespacial completo**. Um ponto existente em
+apenas um lado não vira campo de comparação. Também não atravessam para o
+pacote cego o localizador próprio do ponto GEO, `localizador_vinculo`, as três
+datas de cada ponto (`validade_inicio`, `coletado_em`, `observado_em`) nem a
+estrutura bruta de `contexto_f02`. Os localizadores A/B de cada campo da revisão
+continuam sendo os localizadores factuais dos registros F01/F02 comparados.
+
+O contexto completo permanece no envelope interno, participa de
+`evidencias_sha256`/`populacao_sha256` e fica disponível para auditoria. Score,
+threshold e destino sugerido continuam proibidos no pacote humano. Para as 801
+pendências, o runtime F02 recusa modelo explícito e exige `sem_modelo` com valor
+nulo antes de produzir a população experimental.
 
 ## Estratificação interna
 
@@ -117,7 +151,8 @@ Enquanto a PR #5 não estiver integrada, a função de geração termina com err
 
 ## Critérios de aceite
 
-- [ ] somente candidatos F1-09 entram por padrão;
+- [ ] somente candidatos de contratos F1-09 reconhecidos entram por padrão;
+- [ ] método/schema incompatíveis ou desconhecidos falham alto;
 - [ ] candidatos com decisão F1-01 ficam fora por padrão;
 - [ ] banco/envelope divergentes falham alto;
 - [ ] fonte do campo factual precisa corresponder ao par da fila;

@@ -1,5 +1,12 @@
 # F1-09 — Pipeline executável de candidatos de Entity Resolution
 
+> **Status do `f1-09-f02-contexto-v1`: implementação experimental concluída,
+> ainda bloqueada para produção.** Os gates estruturais de lote homogêneo,
+> execução obrigatoriamente sem modelo, proveniência GEO e semântica temporal
+> estão cobertos no contrato e em testes. O único gate operacional restante é o
+> dry-run integral das 801 pendências, com revisão do relatório. Portanto, isto
+> ainda não autoriza execução produtiva.
+
 ## Objetivo
 
 Fechar a lacuna entre os componentes já implementados da F1 e a fila auditável de revisão:
@@ -49,18 +56,43 @@ A F1-09 usa `RegistroComparavel`:
 - `representacao`: projeção F1-02;
 - `localizador`: origem factual verificável;
 - `campos_revisao`: valores factuais que podem ser exibidos posteriormente.
+- `pontos_geograficos`: zero ou mais pontos com latitude, longitude, tipo de
+  evidência, fonte, localizador, SHA-256 e datas semanticamente separadas;
+- datas de contexto: observação, início da validade cadastral, vinculação
+  publicada e criação do alias, quando existirem.
 
 Localizador é obrigatório. O pipeline não fabrica proveniência.
 
 ## Envelope de evidências
 
-Novos candidatos F1-09 gravam JSON versionado `f1-09-v1` com quatro blocos:
+Novos candidatos F1-09 gravam JSON versionado com cinco blocos comuns:
 
 1. `normalizacao` — versão de normalização de cada lado;
 2. `blocking` — motivos pelos quais o par foi comparado;
 3. `similaridade` — vetor e estados discretizados;
 4. `pontuacao` — escala, valor, versão do modelo e contribuições quando houver;
 5. `revisao` — campos factuais com fonte e localizador de A/B.
+
+O contrato-base continua sendo:
+
+```text
+metodo         = blocking-similaridade-f1-09
+schema_versao  = f1-09-v1
+```
+
+O experimento exclusivo `F01↔F02` adiciona, sem substituir o contrato-base:
+
+```text
+metodo         = blocking-similaridade-f1-09-f02-contexto-v1
+schema_versao  = f1-09-f02-contexto-v1
+contexto_f02   = contexto-f02-v1
+```
+
+O par de fontes escolhe o contrato. Somente o conjunto exato `{F01, F02}` usa
+o envelope contextual. `F01↔F03` permanece em `f1-09-v1`; candidatos antigos,
+inclusive os de F03, não são reescritos nem reinterpretados. Se o mesmo par
+F01/F02 já tiver um candidato legado, o candidato contextual pode coexistir
+com ele sob método e schema próprios. Essa evolução é append-only.
 
 Esse envelope é **interno**. Score/peso, motivo de blocking e estratos não devem ser enviados automaticamente ao revisor. O ADR-010 determina que estratos de amostragem ficam fora do pacote cego `f1-08a-v2`.
 
@@ -87,6 +119,118 @@ pontuacao_valor  = soma log2(m/u)
 As contribuições por campo/estado ficam no envelope interno. Parâmetro ausente faz a execução falhar antes do INSERT.
 
 ## Integração com F02/F03
+
+### Contrato contextual experimental F01↔F02
+
+O `f1-09-f02-contexto-v1` existe para entregar ao revisor os fatos que ajudam a
+avaliar uma possível continuidade do ponto físico sem transformar proximidade
+em identidade. O envelope preserva toda evidência disponível no corte.
+
+#### Evidência geoespacial
+
+F01 consulta **todos** os fatos geográficos encontrados e válidos nos cortes
+`validade_em` e `transacao_em`, ligados ao fato cadastral comparado. Cada ponto
+preserva:
+
+- latitude e longitude;
+- `tipo_evidencia`;
+- fonte do fato geográfico;
+- localizador do resultado bruto e localizador do vínculo factual;
+- `hash_conteudo`, lido de `cache_geocodificacao.resultado_sha256`;
+- `validade_inicio`, início da validade bitemporal do fato geográfico;
+- `coletado_em`, data em que o resultado entrou no cache;
+- `observado_em`, somente quando a fonte declara uma data de obtenção.
+
+As três datas não são intercambiáveis. Para GEO-ANP, `observado_em` vem de
+`metadados.data_obtencao`; para GEO-01 fica `null`, porque a geocodificação não
+declara quando a posição existia no mundo. O início de validade e a coleta
+continuam disponíveis em seus campos próprios, sem serem promovidos a data de
+observação.
+
+Para F02, a coordenada publicada pelo PMQC vira um ponto
+`tipo_evidencia = posicao_pmqc`, com fonte F02, localizador e SHA-256 da linha
+na zona bruta, `coletado_em` do depósito e `observado_em` igual à data de
+coleta declarada pelo PMQC. `validade_inicio` não é inventada.
+
+O ponto só existe quando latitude e longitude estão presentes, são numéricas e
+caem no domínio geográfico. Caso contrário, a observação continua candidata,
+mas a evidência F02 fica `status = ausente`, sem coordenada sintética, e registra
+uma razão explícita:
+
+- `f02_coordenada_ausente_ou_invalida`; ou
+- `f02_coordenada_fora_do_dominio`.
+
+O bloco `contexto_f02.geoespacial` registra contagens de pontos F01/F02, o
+produto cartesiano de comparações e, para cada combinação, ambos os pontos
+completos e a distância Haversine em metros, arredondada a 0,001 m. Nenhum
+ponto é descartado para conservar apenas o “mais próximo”.
+
+Fonte, localizador e hash de cada ponto GEO atravessam o envelope contextual e
+o F1-12 v2. O manifesto precisa declarar cada par `fonte + hash_conteudo` usado;
+o localizador GEO precisa conter um SHA-256 completo e igual ao
+`hash_conteudo` do ponto. O artefato registra a tripla completa em
+`proveniencias_usadas`, exige igualdade entre os snapshots GEO declarados e os
+efetivamente usados e inclui o digest canônico do envelope em
+`populacao_sha256`.
+
+As razões de cobertura são explícitas:
+
+- `f01_sem_evidencia_geografica_no_corte`;
+- `f02_coordenada_ausente_ou_invalida` ou
+  `f02_coordenada_fora_do_dominio` na releitura F02;
+- `f02_sem_coordenada_publicada` como fallback fechado para um registro F02
+  sem ponto nem razão mais específica;
+- `distancia_geografica_calculada`, quando há ao menos uma comparação.
+
+Ausência de ponto produz cobertura zero e razão de ausência; nunca distância
+zero, localização inferida ou reprovação implícita.
+
+#### Evidência temporal
+
+O bloco `contexto_f02.temporal` preserva, quando disponíveis:
+
+- data de coleta F02;
+- início da validade do cadastro F01;
+- data de vinculação publicada no cadastro F01;
+- data em que o alias F01 foi registrado na plataforma;
+- dias entre a coleta F02 e o início da validade F01;
+- dias entre a coleta F02 e a data de vinculação F01.
+
+Além dos valores, o envelope registra cobertura booleana e razões legíveis por
+máquina. O vocabulário completo desta versão é:
+
+- `f02_sem_data_coleta` / `data_coleta_f02_disponivel`;
+- `f01_sem_inicio_validade_cadastral` /
+  `inicio_validade_cadastral_f01_disponivel`;
+- `f01_sem_data_vinculacao_publicada` /
+  `data_vinculacao_f01_disponivel`;
+- `f01_sem_data_registro_alias` / `data_registro_alias_f01_disponivel`;
+- `coleta_f02_no_ou_apos_inicio_validade_f01` /
+  `coleta_f02_anterior_ao_inicio_validade_f01`;
+- `coleta_f02_no_ou_apos_vinculacao_f01` /
+  `coleta_f02_anterior_a_vinculacao_f01`.
+
+Os intervalos em dias só existem quando os dois extremos existem. Data ausente
+permanece `null` e recebe razão própria; não é imputada.
+
+#### Blindagem da revisão humana
+
+O experimento F02 roda sem modelo: `pontuacao_escala = sem_modelo`,
+`pontuacao_valor = NULL` e versão `f1-09-f02-contexto-v1-sem-modelo`. O motor
+genérico F1-09 pode receber modelo em outros contratos, mas o caminho
+F01↔F02 — inclusive a preparação F1-12 — rejeita modelo explícito antes de
+gerar ou persistir candidatos.
+
+Os campos contextuais são copiados para `revisao.campos` com as fontes e os
+localizadores de ambos os lados, para atravessarem a ponte F1-10. O revisor não
+recebe score, faixa, threshold, contribuição do modelo, destino sugerido ou
+autoaceite. A política gravada no contexto é
+`somente_revisao_humana_sem_autoaceite`.
+
+O pipeline pode apenas acrescentar um `candidato_ligacao` auditável. Ele não
+cria ou altera `posto`, alias, fato, `decisao_ligacao`, cluster ou vínculo
+temporal. Qualquer decisão humana posterior pertence a outro fluxo e deixa sua
+própria trilha.
 
 ### Por que reler a zona bruta
 
@@ -135,6 +279,37 @@ O universo F01 é consultado com dois cortes obrigatórios:
 
 Nenhum `now()` escondido define o resultado da comparação.
 
+## Gate das 801 pendências F02 de maio/2026
+
+A auditoria canônica está no [catálogo da F02](dados/catalogo-fontes.md#f02--anp--pmqc-qualidade):
+801 linhas, 23 CNPJs válidos, motivo exclusivo `cnpj_sem_posto`, dez casos com
+candidato espacial forte e nenhuma autorização para vínculo automático.
+
+Antes de qualquer execução produtiva do novo contrato, é obrigatório executar
+um dry-run sobre as 801 linhas em ambiente isolado, com o mesmo snapshot,
+hashes e cortes bitemporais. O relatório de liberação deve registrar ao menos:
+
+- carga e hashes de ZIP/CSV usados;
+- cortes `validade_em` e `transacao_em`;
+- total de linhas, CNPJs, observações e candidatos gerados;
+- cobertura de pontos F01/F02, comparações de distância e razões de ausência;
+- cobertura de cada data e razões temporais;
+- confirmação de `sem_modelo`/valor nulo em todos os candidatos;
+- deltas zero em `posto`, aliases, fatos e decisões;
+- estabilidade da F03 e dos candidatos legados.
+
+O lote gerador F02 aceita exatamente as fontes de entidade `{F01, F02}` e
+falha antes do blocking se F03 ou outra fonte de entidade estiver presente. O
+manifesto do experimento também não mistura F02 com F03; snapshots GEO podem
+ser declarados apenas como proveniência das evidências usadas, sem virarem
+entidades do lote. O conjunto `fonte + hash_conteudo` dos snapshots GEO
+declarados precisa ser exatamente igual ao conjunto GEO efetivamente usado
+pelos candidatos; sobra ou ausência falha alto.
+
+Sem esse relatório revisado, o contrato permanece experimental e não deve ser
+executado nas tabelas produtivas. O dry-run mede e expõe a fila; não aceita
+pares, não cria identidade e não corrige a cobertura pública.
+
 ## Casos ainda fora do escopo
 
 ### `cnpj_ausente`
@@ -147,22 +322,22 @@ Pode representar erro recuperável, mas a reconstrução precisa ser evidenciada
 
 Esses dois motivos serão tratados em card posterior com chave de observação e política próprias.
 
-## Critérios de aceite da PR #4
+## Critérios de aceite do contrato contextual F02
 
-- [ ] migração 013 passa PostgreSQL 16 real;
-- [ ] cliente F1-01 antigo continua conseguindo inserir `score` legado;
-- [ ] `similaridade_01`/`probabilidade_01` não aceitam valor NULL por efeito de `CHECK UNKNOWN`;
-- [ ] `peso_log2` aceita real finito negativo/positivo;
-- [ ] NaN/infinito são rejeitados;
-- [ ] probabilidade exige calibração explícita;
-- [ ] pipeline sem modelo grava NULL, não score fictício;
-- [ ] modelo incompleto falha antes de enfileirar;
-- [ ] evidências de revisão preservam valores, fontes e localizadores;
-- [ ] F02/F03 são relidos da zona bruta com hash conferido;
-- [ ] teste integração F01→F03 pendente→fila não cria alias F03 nem posto novo;
-- [ ] lint, suíte completa e contrato OpenAPI verdes;
-- [ ] nenhum merge enquanto a Issue #2 de billing impedir o CI.
+- [x] pipeline sem modelo grava NULL, não score fictício;
+- [x] F02 é relida da zona bruta com hash conferido;
+- [x] `f1-09-f02-contexto-v1` só é selecionado para F01↔F02;
+- [x] contrato F03 e candidatos legados permanecem imutáveis;
+- [x] todas as evidências geográficas e temporais preservam proveniência e
+      explicam ausência sem imputação;
+- [x] hashes GEO são declarados, validados e entram no fingerprint F1-12 v2;
+- [x] localizador GEO contém SHA-256 completo e coerente com `hash_conteudo`;
+- [x] snapshots GEO declarados e efetivamente usados formam o mesmo conjunto;
+- [x] `observado_em` GEO tem semântica verificável e não deriva indevidamente
+      da validade cadastral;
+- [x] lote e manifesto F02 recusam mistura com F03 antes de gerar candidatos;
+- [x] protocolo F02 roda sem modelo e sem score, threshold ou autoaceite;
+- [ ] dry-run das 801 pendências prova deltas zero fora da fila de candidatos;
 
-## Dependência de blindagem
-
-A PR #4 não exporta pacote para revisor. Quando a ponte fila→F1-08 for implementada, ela deverá usar `f1-08a-v2` (PR #5) ou versão posterior, em que estratos internos não aparecem no artefato cego.
+A blindagem do pacote humano continua a cargo do F1-10 e do codebook
+`f1-08a-v2`: estratos, score e referências internas não atravessam essa ponte.
