@@ -179,6 +179,18 @@ O smoke visual confirmou cartões cronológicos, disclosure com ensaio,
 resultado, unidade, classificação, fonte e data, ausência de erro no console e
 ausência de overflow horizontal em viewport móvel.
 
+A auditoria da fila de pendências confirmou que as 801 linhas pertencem a 23
+CNPJs válidos, todos com o motivo `cnpj_sem_posto`; nenhum deles existe como
+alias ou fato F01 no histórico disponível, que começa em 08/08/2026. Dez casos
+têm candidato espacial forte de continuidade do ponto físico, oito deles
+cadastrados somente depois da coleta de maio, mas proximidade não prova
+identidade nem autoriza atribuir ensaio de um operador anterior ao CNPJ atual.
+Essas pendências representam 1,228% das linhas e concentram 31 dos 353
+resultados `Não` conformes do arquivo, ou 8,782% deles. Até a revisão humana e
+um vínculo temporal/versionado, cobertura deve acompanhar qualquer indicador:
+64.425/65.226 linhas vinculadas. O posto-alvo não participa dessa fila; seus 72
+fatos, nove agrupamentos derivados e três produtos foram vinculados.
+
 O PR #73 fixou o núcleo no contrato documental de produção
 `46b4f535462e44edf79a5e3c0c2bb5cffe6dd8fa`. Os pipelines Woodpecker #12 e
 #13 passaram e promoveram `main`/`deploy` para
@@ -238,14 +250,28 @@ holdout.
 G1 e G2 possuem implementação, testes e serviços implantados. Permanecem
 **abertos para aceite operacional**. O aceite mínimo deve registrar:
 
-Em 2026-10-15, a conta piloto foi auditada contra a configuração do serviço e
-foi confirmado drift entre o e-mail esperado e a identidade já persistida no
-Keycloak. O cadastro persistido foi reconciliado em produção; sujeito, nome de
-usuário, senha e TOTP foram preservados, a conta permaneceu ativa e uma
-verificação posterior confirmou a ausência de ações obrigatórias. O utilitário
-e o runbook desse diagnóstico foram integrados no repositório de gestão com CI
-verde. Essa correção restabelece o identificador de acesso esperado, mas não
-substitui o aceite G1/G2 abaixo.
+Em 2026-10-15, a conta piloto foi auditada contra a configuração do serviço e o
+cadastro persistido foi reconciliado preservando sujeito, senha e TOTP. Em
+2026-10-19, porém, duas tentativas chegaram ao Keycloak e terminaram como
+`invalid_user_credentials`, sem callback do console; o e-mail
+`joaopaulo@pic.local` é aceito como identificador, mas não há evidência de login
+concluído. Redefinir senha ou TOTP permanece uma decisão operacional separada e
+não foi executada.
+
+Uma nova auditoria read-only em 2026-10-20 encontrou a identidade sem drift,
+ativa, com credenciais dos tipos `password` e `otp` e sem ação obrigatória
+pendente. Isso exclui usuário ausente ou cadastro divergente, mas não valida a
+senha conhecida pelo titular nem comprova o fluxo de login ponta a ponta.
+
+O código de gestão avançou até o merge `8c0dc7f6dc3daa376881e9b4683cab2199cdf8fb`
+(PR #42), com auditor read-only e reconciliador limitado do realm persistido.
+O IdP em produção ainda usa imagem anterior às PRs #19, #41 e #42; de todo modo,
+um redeploy isolado não reaplica `pic-realm.json` sobre um realm existente. Em
+2026-10-20, o dry-run autenticado do reconciliador contra produção terminou
+sem escrita, com `precondicao/acr_loa_map_divergente`. Assim, o contrato
+estrutural do realm precisa ser preparado com snapshot, rollback e ensaio antes
+do corte de `browserFlow`; isso é distinto de recuperar a credencial do usuário
+piloto e não substitui o aceite G1/G2 abaixo.
 
 1. dois atores OIDC reais, com papéis diferentes;
 2. duas organizações e a matriz negativa de acesso cruzado;
@@ -262,11 +288,15 @@ qualificador **tecnicamente**.
    migrações GEO 023/024 e concluir a migração de configuração do Railway para
    `.railway/railway.ts` antes de 2026-12-01.
 2. **Cobertura F02 contínua:** acompanhar as 801 pendências de vínculo da carga,
-   medir cobertura por estabelecimento e monitorar competências e revisões do
-   arquivo oficial. A revisão corrente de `2026-06` não deve substituir
+   gerar candidatos pelo pipeline de resolução de entidade e submeter os casos
+   a revisão humana, sem vínculo automático por distância. Publicar
+   `vinculadas/total` junto dos indicadores e monitorar competências e revisões
+   do arquivo oficial. A revisão corrente de `2026-06` não deve substituir
    automaticamente a carga histórica sem comparação e decisão registrada.
-3. **Piloto de gestão:** executar o aceite G1/G2 com 2–5 unidades reais e guardar
-   as evidências do fluxo e das falhas.
+3. **IAM e piloto de gestão:** preparar o contrato estrutural do realm com
+   backup/restore ensaiado, reconciliar produção e só então separar o teste de
+   login da eventual recuperação de senha/TOTP. Depois, executar o aceite G1/G2
+   com 2–5 unidades reais e guardar evidências do fluxo e das falhas.
 4. **Frente institucional em paralelo:** iniciar o pedido F09 ao Inmetro/Ipem,
    sem bloquear o piloto por um calendário externo.
 5. **Evidência científica:** depois de estabilizar o núcleo, executar a fase
