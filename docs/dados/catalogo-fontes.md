@@ -33,16 +33,16 @@ Decisão da F0-01, arbitrada de novo na verificação da F0-02: **tolerante a co
 
 | Campo | Valor |
 |---|---|
-| O que traz | Amostras coletadas: posto, produto, ensaios, resultado (conforme/não conforme) |
+| O que traz | Linhas de ensaio vinculadas ao ponto publicado: data de coleta, produto, nome do ensaio, resultado, unidade e classificação triestado (`conforme`, `não conforme` ou `não classificado`) |
 | Cadência | Mensal, com **defasagem de ~2 meses** observada (em 2026-08, o mês mais recente publicado era 2026-06) |
 | URL observada *(2026-08)* | `…/dados-abertos/arquivos/pmqc/<AAAA>/pmqc_<AAAA>_<MM>.csv` |
 | Formato | CSV |
-| Identificador de amostra | **Não existe na fonte.** `amostra_id` é derivado (ponto + data + produto + coordenada GPS; desempate posicional nos raros casos sem coordenada — 10 em 62,6 mil em 2026-06). Republicação com linhas reordenadas pode trocar a identidade desses casos — risco registrado |
+| Identidade da amostra/agrupamento | **A fonte não publica identificador estável da amostra física.** A plataforma organiza a leitura por agrupamento derivado do identificador do ponto publicado, data, produto e coordenadas da coleta. O contrato público não expõe `amostra_id`, sequência nem chave técnica e não afirma que o agrupamento identifica uma amostra física. Nos raros casos sem coordenada, o desempate interno continua sensível à ordem das linhas — 10 em 62,6 mil em 2026-06 — e uma republicação reordenada pode alterar essa identidade técnica |
 | Acesso | Público |
-| Papel | **Gabarito de qualidade** (rótulo F2 da taxonomia); insumo do risco e da ficha pública |
+| Papel | Resultados laboratoriais oficiais do PMQC; evidência factual para a ficha pública e insumo restrito para modelos internos, sem converter o recorte público em avaliação do posto |
 | Riscos | Amostragem **dirigida, não aleatória** — taxa de reprovação do PMQC ≠ prevalência real; identificação do posto por nome/endereço, não por chave estável |
-| Cuidados | Registrar o desenho amostral junto do dado; toda estatística derivada declara o viés de seleção; reconciliação obrigatória antes de qualquer junção |
-| Exibição pública | Organizar por amostra, produto e ensaio; mostrar `resultado`, `unidade` e classificação somente como publicados, com data/fonte e sem nota global. Ver [especificação da ficha](../produto/ficha-publica.md) |
+| Cuidados | Registrar o desenho amostral junto do dado; preservar `true`/`false`/`null` sem coerção; toda estatística derivada declara o viés de seleção; reconciliação obrigatória antes de qualquer junção |
+| Exibição pública | Organizar por agrupamento derivado, rótulo público canônico do produto e ensaio; mostrar `resultado`, `unidade`, triestado, data e fonte somente como publicados. A equivalência de rótulos é versionada e não altera o dado de origem. A faixa **Indicadores factuais do recorte** conta agrupamentos e ensaios exibidos, produtos canônicos, período e os três estados recontados a partir dos ensaios visíveis, sempre respeitando `truncado`; não é nota, taxa, índice, score, ranking nem classificação do posto. Ver [especificação da ficha](../produto/ficha-publica.md) |
 
 ## F03 — ANP · SLP (preços)
 

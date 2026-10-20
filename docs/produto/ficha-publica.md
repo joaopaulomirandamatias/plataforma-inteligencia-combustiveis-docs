@@ -124,6 +124,35 @@ Coerção por valor truthy/falsy é proibida. A classificação geral de um agru
 só pode aparecer se a própria fonte a publicar e o contrato preservar esse
 campo separadamente.
 
+#### Indicadores factuais do recorte
+
+Antes da lista detalhada, a seção pode apresentar uma faixa compacta intitulada
+**Indicadores factuais do recorte**. A faixa resume somente os agrupamentos
+presentes em `qualidade_combustivel.agrupamentos` na resposta corrente; ela não
+consulta outro período, não completa o recorte por inferência e não substitui a
+leitura dos ensaios.
+
+| Indicador | Cálculo e apresentação |
+|---|---|
+| Agrupamentos exibidos | Quantidade de objetos em `agrupamentos`. A unidade continua sendo o agrupamento derivado, não uma amostra física identificada. |
+| Ensaios exibidos | Soma da quantidade de objetos em `agrupamento.ensaios`. É contagem de linhas de ensaio no recorte, não quantidade de abastecimentos ou de amostras físicas. |
+| Produtos no recorte | Quantidade de rótulos públicos canônicos distintos entre os agrupamentos exibidos. O portal aplica somente a tabela versionada de equivalências de apresentação (por exemplo, caixa e aliases textuais do mesmo combustível), preserva o valor original nos dados de origem e não usa `grupo_produto` para criar produto adicional. Agrupamentos que chegam ao mesmo rótulo canônico são reunidos na mesma seção. |
+| Período observado | Menor e maior `data_coleta` entre os agrupamentos exibidos. Uma única data aparece uma vez; lista vazia não produz período. |
+| Resultados por classificação | Recontagem dos objetos em `agrupamento.ensaios` pelos valores `conforme: true`, `false` e `null`, em três números separados. As contagens agregadas recebidas no agrupamento não são a fonte desse resumo; assim, a faixa permanece coerente com os ensaios realmente exibidos e a soma coincide com **Ensaios exibidos**. |
+| Cobertura do recorte | `truncado: false` → “recorte exibido sem truncamento”; `truncado: true` → “há agrupamentos mais antigos fora deste recorte exibido”, acompanhado do `limite` recebido. Não se publica total nem “X de Y”. |
+
+Esses números são contagens descritivas do payload exibido. **Não são nota,
+taxa, índice de desempenho, score, ranking ou classificação do posto.** Também
+não calculam percentual de conformidade/não conformidade: a coleta do PMQC é
+dirigida, o recorte pode estar truncado e a fonte não sustenta esse denominador
+como estimativa do estabelecimento.
+
+Quando `agrupamentos` estiver vazio, a faixa dá lugar ao estado neutro “Sem
+resultado público vinculado neste período”. Ela não mostra `0%`, não cria um
+período e não traduz ausência como aprovação. Quando `truncado` for verdadeiro,
+o aviso acompanha as contagens e o período; todos os valores continuam
+qualificados como **exibidos neste recorte**, nunca como totais históricos.
+
 Regras de linguagem:
 
 - “ensaio com resultado não conforme” é permitido quando reproduz a fonte;
@@ -319,6 +348,13 @@ populacional só aparece quando houver denominador documentado.
       ensaio e da ausência de resultado;
 - [x] todo ensaio PMQC apresenta fonte e data; cada agrupamento apresenta suas
       contagens e o recorte declara limite/truncamento;
+- [x] a faixa **Indicadores factuais do recorte** deriva agrupamentos, ensaios,
+      produtos, período e triestado somente dos agrupamentos exibidos;
+- [x] `truncado: true` mantém todas as contagens qualificadas como recorte,
+      informa que há agrupamentos adicionais e não inventa total ou “X de Y”;
+- [x] testes de conteúdo e de interface provam que a faixa não publica
+      percentual, nota, taxa, índice de desempenho, score, ranking ou
+      classificação do posto;
 - [ ] a visão histórica usa o mesmo `as_of` em todas as seções e possui link
       permanente;
 - [ ] teste bitemporal prova que fato aprendido após `as_of` não aparece e que
