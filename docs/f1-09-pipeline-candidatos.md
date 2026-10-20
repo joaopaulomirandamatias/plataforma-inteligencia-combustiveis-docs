@@ -282,12 +282,62 @@ Nenhum `now()` escondido define o resultado da comparação.
 ## Gate das 801 pendências F02 de maio/2026
 
 A auditoria canônica está no [catálogo da F02](dados/catalogo-fontes.md#f02--anp--pmqc-qualidade):
-801 linhas, 23 CNPJs válidos, motivo exclusivo `cnpj_sem_posto`, dez casos com
-candidato espacial forte e nenhuma autorização para vínculo automático.
+o CSV registrado na carga tem SHA-256
+`18ade9a457aea3c5bd28947a21a4be88d3fcaa92f7a6eb60739f6929d610206a` e o ZIP
+oficial preservado tem SHA-256
+`c675f9e654edb5625a4340b83b991d06187299f7991f71bb72b954f2f60b56cd`.
+A carga leu 65.226 linhas, vinculou 64.425 fatos e deixou 801 pendências em 23
+CNPJs válidos, com motivo exclusivo `cnpj_sem_posto` e zero linha descartada.
+Dez casos têm candidato espacial forte, sem que isso autorize vínculo automático.
 
-Antes de qualquer execução produtiva do novo contrato, é obrigatório executar
-um dry-run sobre as 801 linhas em ambiente isolado, com o mesmo snapshot,
-hashes e cortes bitemporais. O relatório de liberação deve registrar ao menos:
+### Ambiente obrigatório do ensaio
+
+`pic-er preparar-experimento` **não possui modo dry-run**. O comando abre
+`PIC_DATABASE_URL_APP`, insere em `identidade.candidato_ligacao` e, quando
+termina sem erro, confirma a transação. É proibido apontá-lo para produção ou
+tratar um rollback como isolamento suficiente: sequências PostgreSQL não são
+transacionais e podem avançar mesmo quando as linhas são revertidas.
+
+Neste gate, “dry-run” significa exclusivamente um ensaio em
+**restauração/clone descartável e isolado**, nunca uma transação descartada no
+banco produtivo. A restauração precisa estar acompanhada da mesma zona bruta e
+dos respectivos manifestos, porque o pipeline abre o caminho registrado em
+`ingestao.carga.caminho_bruto` e confere o SHA-256 antes de reler o CSV.
+
+Antes de conectar, o operador registra e compara nominalmente host, banco e
+usuário do DSN com a restauração aprovada; qualquer coincidência com o endpoint
+produtivo bloqueia o ensaio. Prefere-se usar duas restaurações do mesmo estado
+limpo: a primeira para descobrir estratos e proveniências efetivamente usadas;
+a segunda para reproduzir o manifesto aprovado e produzir a evidência final.
+Reutilizar um clone já alterado exige restauração ao estado inicial antes da
+reprodução.
+
+O ensaio precisa usar os hashes comprovados acima e cortes bitemporais
+explicitamente aprovados. `validade_em`, `transacao_em`, seed, quotas e o
+conjunto exato de hashes F01/GEO **não estão definidos por esta baseline** e não
+podem ser preenchidos por inferência. Em particular, snapshots GEO declarados e
+não usados também invalidam o manifesto.
+
+### Asserções e relatório de liberação
+
+Antes de executar o pipeline, o preflight precisa confirmar na restauração:
+
+- `sum(ingestao.pendencia_vinculo.ocorrencias) = 801` para a carga;
+- 23 chaves/CNPJs distintos, todos com motivo `cnpj_sem_posto`;
+- SHA-256 do CSV e do ZIP iguais à baseline acima;
+- zona bruta e manifesto legíveis nos caminhos esperados.
+
+Após a releitura, o relatório precisa provar ainda:
+
+- `linhas_relevantes = 801`, 23 CNPJs pendentes e
+  `linhas_cnpj_sem_dv_valido = 0`;
+- reconciliação explícita entre linhas, CNPJs, observações factuais e candidatos,
+  mantendo contabilizadas as observações que não atravessarem o blocking;
+- escrita restrita à fila contextual F02 do clone, com deltas zero em `posto`,
+  aliases, fatos e decisões;
+- estabilidade da F03 e dos candidatos legados.
+
+O relatório de liberação deve registrar ao menos:
 
 - carga e hashes de ZIP/CSV usados;
 - cortes `validade_em` e `transacao_em`;
