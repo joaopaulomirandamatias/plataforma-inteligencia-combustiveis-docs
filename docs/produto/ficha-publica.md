@@ -1,14 +1,22 @@
 # Ficha pública do posto — conteúdo e organização
 
-> **Estado:** especificação de produto com o primeiro bloco factual em
-> produção. Este documento ainda contém dimensões alvo que não estão no portal
-> ou na API. O [status canônico](../status-projeto.md) continua sendo a fonte
-> para distinguir desenho, implementação e produção.
+> **Estado:** especificação de produto com o contrato estruturado de qualidade
+> em produção. A organização dos detalhes em cartões cronológicos, descrita
+> abaixo, é a próxima iteração do portal e só deve ser tratada como ativa depois
+> de validação e promoção registradas no
+> [status canônico](../status-projeto.md). Este documento ainda contém dimensões
+> alvo que não estão no portal ou na API.
 >
-> **Recorte observado em 2026-10-19:** a seção visual **Qualidade do
+> **Recorte observado em 2026-10-20:** a seção visual **Qualidade do
 > combustível** e o payload estruturado estão em produção. A ficha
 > `00097ff8-98c0-5d16-823e-66edb77c334c` foi observada com 6 agrupamentos e 48
-> ensaios reais, incluindo data, fonte, resultado, unidade e classificação.
+> ensaios reais, incluindo data, fonte, resultado, unidade e classificação. A
+> ficha `304d2b1e-e655-5f50-8db9-b8445179ce25` retornou agrupamentos vazios em
+> produção, embora 72 linhas PMQC tenham sido localizadas na competência
+> `2026-05` publicada pela fonte. Essa competência ainda não havia sido carregada
+> após a entrega da F02 mudar de CSV direto para ZIP e o backfill permanecer
+> pendente. Portanto, esse vazio é uma lacuna de cobertura, não evidência de
+> inexistência de ensaios na fonte.
 
 ## Objetivo
 
@@ -76,23 +84,38 @@ resposta. Intervalos seguem `[início, fim)`: versão que começa exatamente em 
 entra; versão cujo fim é exatamente `T` não entra. Instantes equivalentes com
 offsets diferentes precisam produzir o mesmo estado e a mesma URL canônica.
 
-### 2. Resumo factual
+### 2. Resumo factual superior
 
-Um resumo curto facilita a leitura, mas não produz nota composta. Ele pode
-mostrar a data do último preço, do último resultado PMQC, do último ato oficial e
-o frescor de cada fonte. A ausência de uma dimensão aparece como “sem dado
-público vinculado no período”, nunca como zero, aprovação ou conformidade.
+Um resumo curto facilita a leitura, mas não produz nota composta. Para PMQC,
+ele apresenta apenas fatos calculados sobre o payload exibido: quantidade de
+agrupamentos derivados, ensaios e produtos, período observado, contagens
+separadas de `conforme`, `não conforme` e `não classificado`, além de limite e
+estado de truncamento. Os ensaios individuais ficam na linha do tempo; não são
+duplicados no resumo.
+
+O resumo também pode mostrar a data do último preço, do último resultado PMQC,
+do último ato oficial e o frescor de cada fonte. A ausência de uma dimensão
+aparece como “sem dado público vinculado no período”, nunca como zero,
+aprovação ou conformidade.
 
 ### 3. Qualidade do combustível — ANP/PMQC
 
-Esta seção é obrigatória quando existir resultado PMQC reconciliado com o posto.
-A fonte F02 não fornece identificador estável da amostra física. Por isso, a API
-declara `identidade_agrupamento: derivada` e organiza os ensaios por uma chave
-técnica composta do identificador do ponto publicado pela F02, data, produto e
+O bloco superior de qualidade aparece mesmo quando não há agrupamento, pois é
+ele que comunica o estado do recorte de maneira honesta. A fonte F02 não
+fornece identificador estável da amostra física. Por isso, a API declara
+`identidade_agrupamento: derivada` e organiza os ensaios por uma chave técnica
+composta do identificador do ponto publicado pela F02, data, produto e
 coordenadas da coleta. Esse agrupamento organiza a leitura, mas não prova que
 todos os ensaios vieram da mesma amostra física. A resposta contém um recorte
 de até oito agrupamentos mais recentes: `limite` é `8` e `truncado` informa se
-existem resultados adicionais, sem publicar total. Cada agrupamento mostra:
+existem resultados adicionais, sem publicar total.
+
+#### Cartões cronológicos no histórico oficial
+
+Cada agrupamento derivado vira **um cartão** na linha do tempo **Histórico
+oficial**, intercalado com preços e os demais fatos públicos pela data de
+referência. Não se cria um cartão por ensaio e não se reúne agrupamentos de
+datas diferentes. O cartão mostra, sem exigir expansão:
 
 - data de coleta;
 - produto e grupo de produto, quando publicados;
@@ -102,7 +125,10 @@ existem resultados adicionais, sem publicar total. Cada agrupamento mostra:
 - aviso de que a amostragem do PMQC é dirigida e não mede, sozinha, a
   prevalência de problemas no posto.
 
-Cada ensaio deve aparecer em linha própria, com:
+Os ensaios ficam em um controle de divulgação (*disclosure*) dentro do cartão,
+para manter a cronologia escaneável sem esconder o detalhe. O controle é
+operável por teclado, anuncia seu estado expandido/recolhido e não depende
+somente de cor ou de ícone. Cada ensaio aparece em linha própria, com:
 
 | Campo | Apresentação |
 |---|---|
@@ -110,7 +136,12 @@ Cada ensaio deve aparecer em linha própria, com:
 | Resultado | Valor/texto publicado pela fonte, sem reinterpretar |
 | Unidade | Unidade publicada; “não informada” quando ausente |
 | Classificação | `conforme`, `não conforme` ou `não classificado`, conforme a fonte |
-| Referência | Data da coleta e identificação pública da fonte |
+| Referência | Data da coleta e identificação pública da fonte, ainda que coincidam com a procedência do agrupamento |
+
+Fonte e data aparecem em dois níveis deliberadamente: no cartão, para dar
+procedência ao agrupamento ainda recolhido; em cada ensaio, para que o detalhe
+continue autocontido quando lido isoladamente por tecnologia assistiva ou
+extraído para outra apresentação.
 
 Quando a fonte vier a publicar valor medido, limite ou faixa normativa de forma
 estruturada, a ficha pode acrescentar **valor medido**, **limite/faixa** e
@@ -126,11 +157,11 @@ campo separadamente.
 
 #### Indicadores factuais do recorte
 
-Antes da lista detalhada, a seção pode apresentar uma faixa compacta intitulada
+No bloco superior, a seção apresenta uma faixa compacta intitulada
 **Indicadores factuais do recorte**. A faixa resume somente os agrupamentos
 presentes em `qualidade_combustivel.agrupamentos` na resposta corrente; ela não
 consulta outro período, não completa o recorte por inferência e não substitui a
-leitura dos ensaios.
+leitura dos ensaios nos cartões cronológicos.
 
 | Indicador | Cálculo e apresentação |
 |---|---|
@@ -249,7 +280,9 @@ histórico.
 
 | Situação | Texto esperado | Texto proibido |
 |---|---|---|
-| Nenhum agrupamento PMQC vinculado | “Sem resultado público vinculado neste período” | “Qualidade aprovada” |
+| `qualidade_combustivel.agrupamentos` presente e vazio, com cobertura conhecida | “Sem resultado público vinculado neste período” | “Qualidade aprovada” ou “o posto não possui testes” |
+| Campo estruturado ausente ou `null` numa resposta legada | Estado de compatibilidade: dados estruturados de qualidade indisponíveis nesta versão da resposta | Converter a ausência do campo em lista vazia ou afirmar que a fonte não tem resultado |
+| Competência da fonte não ingerida ou backfill pendente | Informar a competência/frescor conhecido e a lacuna de cobertura | Tratar o payload vazio como retrato completo da fonte |
 | Resultado vazio na fonte | “Resultado não informado pela fonte” | “Conforme” |
 | Ensaio sem classificação | “Não classificado” | Inferir pelo texto livre |
 | Fonte atrasada | Exibir competência/frescor e o atraso | Tratar o dado antigo como atual |
@@ -258,16 +291,31 @@ histórico.
 | Fato corrigido | Exibir a versão aplicável e indicar a retificação | Sobrescrever o passado em silêncio |
 | Fato retirado por obrigação | Tombstone sem o conteúdo, inclusive em permalink histórico | Republicar sob pretexto de reprodutibilidade |
 
+Esses estados não são intercambiáveis. A lista estruturada vazia descreve o
+que a API conseguiu vincular **no recorte servido**. Campo ausente ou `null`
+indica fallback de uma versão legada do contrato. Competência não ingerida é
+uma lacuna operacional entre fonte e snapshot. Somente uma verificação da
+cobertura permite afirmar qual dos três casos se aplica; nenhum deles autoriza
+inferir aprovação, reprovação ou inexistência de coleta.
+
+Em 2026-10-20, o posto
+`304d2b1e-e655-5f50-8db9-b8445179ce25` demonstrou essa diferença: o payload de
+produção trouxe `agrupamentos: []`, mas a competência `2026-05` da fonte continha
+72 linhas PMQC associáveis ao estabelecimento. A publicação havia mudado de
+CSV direto para ZIP e essa competência ainda não tinha sido retrocarregada.
+Até o conector aceitar a nova embalagem e o backfill ser validado, a ficha deve
+identificar o vazio como cobertura incompleta, não como ausência na fonte.
+
 ## Matriz de conteúdo
 
 | Fonte/dimensão | Conteúdo público elegível | Organização na ficha | Estado do requisito |
 |---|---|---|---|
 | F01 — cadastro ANP | CNPJ PJ, bandeira, autorização, endereço e datas | Cadastro | Já existe parcialmente |
-| F02 — PMQC | Agrupamento derivado, produto, ensaio, resultado, unidade e classificação triestado | Qualidade, por agrupamento e ensaio | **Em produção** no contrato, core e portal; smoke positivo em 2026-10-19 |
+| F02 — PMQC | Agrupamento derivado, produto, ensaio, resultado, unidade e classificação triestado | Resumo factual superior; um cartão por agrupamento no histórico oficial; ensaios em disclosure | Contrato/core e primeiro bloco visual **em produção**; organização cronológica em validação antes da promoção |
 | F03 — preços ANP | Valor, unidade, produto, semana e cobertura regional | Preços e médias | Já existe parcialmente |
 | GEO-ANP/GEO-01 | Posição oficial ou inferida, com origem | Mapa/localização | Já existe parcialmente |
-| F04 — atos ANP | Processo, ato, situação e datas, se a granularidade pública permitir | Linha do tempo oficial | Pendente de fonte/contrato |
-| Inmetro/IPEM | Resultado público de aferição, erro e situação, quando publicável | Metrologia | Depende de classificação da fonte |
+| F04 — atos ANP | Processo, ato, situação e datas, se a granularidade pública permitir | Linha do tempo oficial | Sem contrato público aprovado; não exibir |
+| Inmetro/IPEM | Resultado público de aferição, erro e situação, quando publicável | Metrologia | Sem contrato público e dependente de classificação/convênio; não exibir |
 | F06 — Procon/Sindec | Cobertura geral; contagem por posto somente após limiar/supressão aprovados | Contexto público | **NO-GO para contagem por posto** até gate de privacidade |
 | Receita/CNPJ | Situação cadastral da PJ pertinente ao estabelecimento | Cadastro/contexto | Sem pessoa física ou QSA público na ficha |
 
@@ -284,6 +332,12 @@ de integração coordenadas:
 - o portal ganhou seção por agrupamento/ensaio, estados vazio e legado, allowlist de
   hidratação e avisos metodológicos;
 - as suítes locais de contrato, core e portal passaram.
+
+A iteração seguinte separa a faixa factual do detalhe: mantém as contagens no
+topo e move cada agrupamento derivado para um cartão cronológico no Histórico
+oficial, com os ensaios em disclosure. Até haver evidência de testes, merge,
+deploy e smoke dessa iteração, a descrição acima é especificação de produto,
+não afirmação sobre o HTML servido em produção.
 
 Em 2026-10-19, a camada do portal foi promovida primeiro. Os PRs #35/#36 foram
 mesclados, `main` e `deploy` ficaram em
@@ -304,13 +358,16 @@ fonte e data sem erros no console.
 
 Para cumprir esta especificação por inteiro ainda é necessário:
 
-1. remover o NO-GO de backup/PITR do núcleo e executar com segurança a sequência
+1. adaptar e provar a ingestão F02 para a entrega ZIP e executar backfill
+   controlado da competência `2026-05`, reconciliando as 72 linhas do posto
+   `304d2b1e-e655-5f50-8db9-b8445179ce25` sem duplicar fatos;
+2. remover o NO-GO de backup/PITR do núcleo e executar com segurança a sequência
    das migrações 023/024 do PR #70;
-2. ampliar o smoke automatizado do bloco PMQC para payload de hidratação,
+3. ampliar o smoke automatizado do bloco PMQC para payload de hidratação,
    viewport móvel, zoom e leitor de tela;
-3. definir paginação/limites para históricos extensos e preservar `as_of` em
+4. definir paginação/limites para históricos extensos e preservar `as_of` em
    todas as consultas;
-4. implementar as demais dimensões públicas elegíveis e seus gates, sem
+5. implementar as demais dimensões públicas elegíveis e seus gates, sem
    antecipar F06 por posto enquanto o NO-GO de privacidade estiver aberto.
 
 A reconciliação segue o contrato de
@@ -322,6 +379,14 @@ Para atos oficiais, F04 continua fora da ficha até o contrato enumerar ao menos
 `coleta`, `autuacao`, `decisao`, `sancao`, `suspenso`, `em_recurso`, `anulado` e
 `definitivo`, com a fonte autoritativa e as datas de fato e decisão. Não se
 infere situação processual a partir de texto livre.
+
+Todo fato novo entra por **allowlist de apresentação e contrato público
+fechado**. Acrescentar um campo no banco, na API interna ou numa fonte não o
+torna publicável automaticamente. F04 e IPEM permanecem fora da ficha enquanto
+não houver contrato e decisão de publicação; F06 continua bloqueada pelo gate
+de privacidade. O fallback legado aceita respostas anteriores sem quebrar a
+página, mas não promove campos desconhecidos nem fabrica a semântica do estado
+estruturado.
 
 “Cobertura” é específica por dimensão: em preço regional, número de postos
 distintos no mesmo produto/semana/território; em PMQC, número de agrupamentos
@@ -355,6 +420,12 @@ populacional só aparece quando houver denominador documentado.
 - [x] testes de conteúdo e de interface provam que a faixa não publica
       percentual, nota, taxa, índice de desempenho, score, ranking ou
       classificação do posto;
+- [ ] o portal promovido mantém somente o resumo factual no bloco superior e
+      apresenta exatamente um cartão cronológico por agrupamento derivado;
+- [ ] cada cartão traz data/fonte e contagens triestado antes da expansão, e
+      cada ensaio repete data/fonte dentro de disclosure acessível;
+- [ ] os testes distinguem lista vazia, resposta legada sem o campo e
+      competência conhecida ainda não ingerida;
 - [ ] a visão histórica usa o mesmo `as_of` em todas as seções e possui link
       permanente;
 - [ ] teste bitemporal prova que fato aprendido após `as_of` não aparece e que

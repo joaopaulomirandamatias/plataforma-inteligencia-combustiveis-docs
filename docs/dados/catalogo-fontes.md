@@ -35,13 +35,13 @@ Decisão da F0-01, arbitrada de novo na verificação da F0-02: **tolerante a co
 |---|---|
 | O que traz | Linhas de ensaio vinculadas ao ponto publicado: data de coleta, produto, nome do ensaio, resultado, unidade e classificação triestado (`conforme`, `não conforme` ou `não classificado`) |
 | Cadência | Mensal, com **defasagem de ~2 meses** observada (em 2026-08, o mês mais recente publicado era 2026-06) |
-| URL observada *(2026-08)* | `…/dados-abertos/arquivos/pmqc/<AAAA>/pmqc_<AAAA>_<MM>.csv` |
-| Formato | CSV |
+| URL observada *(2026-08)* | `…/dados-abertos/arquivos/pmqc/<AAAA>/pmqc_<AAAA>_<MM>.csv` — registro histórico da entrega direta, não regra permanente para descobrir competências |
+| Formato | CSV direto no histórico; entrega observada em 2026-10 passou a ZIP contendo os dados tabulares. O conector deve descobrir e validar a embalagem publicada, sem montar a URL ou presumir extensão fixa |
 | Identidade da amostra/agrupamento | **A fonte não publica identificador estável da amostra física.** A plataforma organiza a leitura por agrupamento derivado do identificador do ponto publicado, data, produto e coordenadas da coleta. O contrato público não expõe `amostra_id`, sequência nem chave técnica e não afirma que o agrupamento identifica uma amostra física. Nos raros casos sem coordenada, o desempate interno continua sensível à ordem das linhas — 10 em 62,6 mil em 2026-06 — e uma republicação reordenada pode alterar essa identidade técnica |
 | Acesso | Público |
 | Papel | Resultados laboratoriais oficiais do PMQC; evidência factual para a ficha pública e insumo restrito para modelos internos, sem converter o recorte público em avaliação do posto |
-| Riscos | Amostragem **dirigida, não aleatória** — taxa de reprovação do PMQC ≠ prevalência real; identificação do posto por nome/endereço, não por chave estável |
-| Cuidados | Registrar o desenho amostral junto do dado; preservar `true`/`false`/`null` sem coerção; toda estatística derivada declara o viés de seleção; reconciliação obrigatória antes de qualquer junção |
+| Riscos | Amostragem **dirigida, não aleatória** — taxa de reprovação do PMQC ≠ prevalência real; identificação do posto por nome/endereço, não por chave estável; mudança de CSV direto para ZIP pode criar lacuna silenciosa se o coletor presumir extensão fixa |
+| Cuidados | Registrar o desenho amostral junto do dado; preservar `true`/`false`/`null` sem coerção; toda estatística derivada declara o viés de seleção; reconciliação obrigatória antes de qualquer junção; comparar competências descobertas, carregadas e servidas e executar backfill explícito quando a embalagem mudar |
 | Exibição pública | Organizar por agrupamento derivado, rótulo público canônico do produto e ensaio; mostrar `resultado`, `unidade`, triestado, data e fonte somente como publicados. A equivalência de rótulos é versionada e não altera o dado de origem. A faixa **Indicadores factuais do recorte** conta agrupamentos e ensaios exibidos, produtos canônicos, período e os três estados recontados a partir dos ensaios visíveis, sempre respeitando `truncado`; não é nota, taxa, índice, score, ranking nem classificação do posto. Ver [especificação da ficha](../produto/ficha-publica.md) |
 
 ## F03 — ANP · SLP (preços)
