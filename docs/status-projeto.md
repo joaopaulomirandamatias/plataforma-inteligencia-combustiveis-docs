@@ -128,22 +128,56 @@ resultado, unidade e classificação sem erros no console. O schema PMQC pode,
 assim, ser consumido em produção; ausência de agrupamentos continua significando
 somente ausência de resultado público vinculado no recorte.
 
-Uma verificação em 2026-10-20 refinou essa conclusão para a ficha
+Uma verificação anterior em 2026-10-20 refinou essa conclusão para a ficha
 `304d2b1e-e655-5f50-8db9-b8445179ce25`. A competência `2026-05` publicada pela
 fonte contém 72 linhas PMQC associáveis ao estabelecimento, mas essa competência
 não estava no snapshot produtivo: a entrega da F02 mudou de CSV direto para ZIP
 e o backfill correspondente ainda não havia sido executado. Portanto,
 `agrupamentos: []` nessa ficha é uma lacuna de cobertura entre fonte e produção,
-não evidência de que a fonte não possui testes do posto.
+não evidência de que a fonte não possui testes do posto. Essa era a fotografia
+antes do backfill descrito abaixo, não o estado atual.
 
-A próxima iteração visual, ainda sem evidência de promoção no momento deste
-registro, mantém no topo apenas o resumo factual do recorte e coloca um cartão
-no Histórico oficial para cada agrupamento derivado, em ordem cronológica. O
+Em 2026-10-20, essa iteração visual foi promovida pelo PR #39 do portal. O merge
+`72b5ed55d504cca421989a01b424ba941a616a3b`, o pipeline Woodpecker #54 e o
+deployment Railway `eeb4d0ba-d1e3-4e93-99af-11774c9f609e` terminaram com
+sucesso. O portal mantém no topo apenas o resumo factual do recorte e coloca um
+cartão no Histórico oficial para cada agrupamento derivado, em ordem cronológica. O
 cartão expõe produto, contagens triestado, data e fonte; os ensaios ficam em
 disclosure e repetem sua data e fonte. Respostas legadas sem o campo estruturado
 continuam em fallback neutro. Demais fatos só entram por allowlist e contrato
 público: F04 e IPEM ainda não têm contrato aprovado para a ficha, e F06
 permanece bloqueada pelo gate de privacidade.
+
+O PR #75 do núcleo adaptou a F02 para as entregas mensais ZIP, preservando ZIP e
+CSV derivado com hashes e proveniência, limites de segurança, quarentena,
+idempotência e execução explícita por competência. O merge
+`d1bf3bb5c67acbec9608ac6006221366400d8c64` passou nos pipelines Woodpecker #16
+(PR) e #17 (`main` + promoção). A validação local completa em PostgreSQL 17
+registrou 827 testes aprovados, 18 ignorados e 2 deselecionados; a execução
+hermética complementar registrou 490 aprovados, 355 ignorados e 2
+deselecionados.
+
+No Railway, o Migrator `a5a4b0b3-de47-4a6f-a390-d981dd61674c` confirmou 22
+migrações já aplicadas, e a API `0dd74894-ba1c-4e32-9981-96585c3a9e0d`
+entrou em `SUCCESS`. O one-shot ANP
+`59506094-6e6e-4a4f-964f-840f6ca580c1` atualizou F01 e GEO-ANP, confirmou F02
+em dia e executou F03 sem erro; F06 não fez parte da allowlist. Em seguida, o
+job explícito `50e3219a-51bd-4139-b651-cb5f4916c3a0` carregou F02 `2026-05`:
+65.226 linhas lidas, 64.425 fatos vinculados, 801 pendências em 23 chaves e
+nenhuma linha descartada. O processo terminou com saída normal e o serviço foi
+restaurado para `/railway.worker.json`, cron `null`, restart `NEVER` e volume
+`/data`.
+
+Após o backfill, `/saude` informou snapshot
+`cargas/F01:72,F02:74,F03:55,GEO-ANP:73`, 193.043 fatos PMQC e três cargas F02.
+A ficha-alvo passou a exibir, no limite público de oito agrupamentos, 65 ensaios
+de três produtos, todos classificados como conformes pela fonte no recorte de
+18/05/2026, com `truncado: true`. As 72 linhas associáveis na fonte descrevem a
+competência antes do limite público; os 65 ensaios descrevem somente os oito
+agrupamentos devolvidos. Não se infere perda nem total histórico dessa diferença.
+O smoke visual confirmou cartões cronológicos, disclosure com ensaio,
+resultado, unidade, classificação, fonte e data, ausência de erro no console e
+ausência de overflow horizontal em viewport móvel.
 
 O PR #73 fixou o núcleo no contrato documental de produção
 `46b4f535462e44edf79a5e3c0c2bb5cffe6dd8fa`. Os pipelines Woodpecker #12 e
@@ -172,11 +206,12 @@ O PR #74 corrigiu o falso verde da agenda no código: falhas estruturadas fecham
 com exit `1`, F06 em `NXDOMAIN` fecha com `5`, F02/F03 sem publicação esperada
 continuam em `0` e status desconhecido falha fechado. Os pipelines Woodpecker
 #14 e #15 passaram sem skips e promoveram
-`main == deploy == 51eb12dd8ba95fc3eb90832287d3f58c83928b77`. O serviço
-`pic-worker` não foi reimplantado nem executado; continua no deployment anterior
-com cron `null`. O primeiro one-shot controlado desse SHA ainda deve provar a
-propagação do exit code no runtime, e logs, resumos e deltas continuam
-obrigatórios. O procedimento detalhado está em
+`main == deploy == 51eb12dd8ba95fc3eb90832287d3f58c83928b77`. O caminho feliz
+da agenda foi posteriormente exercitado pelo one-shot ANP de 2026-10-20, com
+três fontes executadas, zero erro e processo encerrado; a propagação de um erro
+F06 real continua sem nova prova porque F06 permaneceu deliberadamente fora da
+allowlist. Logs, resumos e deltas continuam obrigatórios. O procedimento
+detalhado está em
 `docs/operacao-migracoes.md` no repositório do núcleo, e a interpretação da
 pausa no runbook de [desligar/religar](operacao/runbooks/desligar-e-religar-a-plataforma.md#cron).
 
@@ -223,12 +258,13 @@ qualificador **tecnicamente**.
 
 ## Próxima rodada recomendada
 
-1. **Cobertura F02:** adaptar e provar a ingestão da entrega ZIP e executar o
-   backfill controlado de `2026-05`, verificando as 72 linhas do posto observado,
-   deduplicação, reconciliação e o novo payload antes de interpretar ausências.
-2. **Estabilização:** preservar trabalho local, reconciliar branches e PRs,
-   recuperar gates de CI e concluir a migração de configuração do Railway para
+1. **Estabilização:** executar o saneamento e o gate de backup/PITR antes das
+   migrações GEO 023/024 e concluir a migração de configuração do Railway para
    `.railway/railway.ts` antes de 2026-12-01.
+2. **Cobertura F02 contínua:** acompanhar as 801 pendências de vínculo da carga,
+   medir cobertura por estabelecimento e monitorar competências e revisões do
+   arquivo oficial. A revisão corrente de `2026-06` não deve substituir
+   automaticamente a carga histórica sem comparação e decisão registrada.
 3. **Piloto de gestão:** executar o aceite G1/G2 com 2–5 unidades reais e guardar
    as evidências do fluxo e das falhas.
 4. **Frente institucional em paralelo:** iniciar o pedido F09 ao Inmetro/Ipem,

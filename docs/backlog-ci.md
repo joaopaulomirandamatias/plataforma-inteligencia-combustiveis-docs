@@ -11,7 +11,7 @@ developer/agent
     main
       │ push
       ▼
-GitHub Actions
+Woodpecker compartilhado
   │
   ├─ falha ───────────────► deploy NÃO avança
   │
@@ -26,15 +26,21 @@ GitHub Actions
 
 `deploy` é branch máquina-a-máquina. Desenvolvimento acontece em `main`; ninguém deve fazer desenvolvimento manual em `deploy`.
 
+O servidor e os agentes Woodpecker são compartilhados entre repositórios. Por
+isso, typecheck, testes e lint aplicáveis rodam localmente antes do push; commits
+são agrupados em um único push; PR só é aberta pronta para revisão. Falha de
+clone/Git `128`, rede de dependências ou timeout em código não alterado é
+reexecutada no mesmo pipeline, sem commit vazio.
+
 ## Backend (`plataforma-inteligencia-combustiveis`)
 
-O workflow executa:
+O pipeline Woodpecker executa:
 
-1. PostgreSQL 16 real como service container;
+1. PostgreSQL 16 real como service container, fixado por digest;
 2. checkout do backend;
 3. checkout do repositório canônico de documentação;
 4. Python 3.13 + instalação das dependências de desenvolvimento;
-5. `ruff check .`;
+5. `ruff check src tests`;
 6. suíte completa `pytest -ra`;
 7. execução explícita da conformidade OpenAPI com `--strict-markers`;
 8. promoção do SHA para `deploy` **somente se ele ainda for o HEAD atual de `main`**.
@@ -68,24 +74,34 @@ quando o SHA fixado for atualizado.
 
 ### Proteção contra corrida
 
-O workflow usa `concurrency` com cancelamento da execução anterior. Além disso, imediatamente antes da promoção ele busca `origin/main` de novo e compara o SHA validado com o SHA atual.
+Imediatamente antes da promoção, o pipeline busca `origin/main` de novo e
+compara o SHA validado com o SHA atual. No núcleo, a promoção também é
+serializada com `concurrency.limit: 1`. Isso não equivale a cancelar
+automaticamente todo CI obsoleto ainda na fila; quando um novo push substitui o
+anterior, o pipeline antigo da mesma PR deve ser cancelado operacionalmente.
 
-Se outro commit chegou enquanto a suíte rodava, a execução antiga termina sem promover. Isso impede que um CI lento faça `--force` e retroceda produção para um SHA mais velho.
+Se outro commit chegou enquanto a suíte rodava, a execução antiga termina sem
+promover. Isso impede que um CI lento faça `--force-with-lease` e retroceda
+produção para um SHA mais velho.
 
 ## Frontend (`plataforma-inteligencia-combustiveis-web`)
 
-O workflow executa:
+O pipeline Woodpecker executa:
 
-1. `pnpm/action-setup` antes do cache — ordem necessária para o runner encontrar o executável;
-2. Node 22;
-3. `pnpm install --frozen-lockfile`;
-4. testes;
+1. clone explícito da documentação canônica e prova do SHA usado pelo léxico;
+2. Node 22, pnpm 9.15.9 e `pnpm install --frozen-lockfile`;
+3. typecheck integral com `tsc --noEmit`;
+4. testes com a paridade do léxico obrigada a executar em CI;
 5. auditoria de dependências de produção;
 6. build Next.js;
-7. verificação do payload RSC em push para `main`;
-8. mesma promoção protegida `main → deploy` usada no backend.
+7. verificação do payload RSC em PR e push para `main`;
+8. promoção protegida `main → deploy`, em pipeline dependente, somente no push
+   já validado.
 
-A primeira execução real encontrou a ordem incorreta `setup-node/cache` antes da instalação do pnpm; a falha foi corrigida e validada pelo próprio CI.
+O fluxo atual não depende de cache implícito: prepara pnpm 9.15.9, executa
+typecheck, testes, auditoria, build e pente do payload RSC. A paridade do léxico
+clona explicitamente a documentação e falha, em vez de pular, quando não pode
+ser comprovada.
 
 ## Railway production
 
@@ -94,7 +110,7 @@ Projeto: `Plataforma Combustível`.
 | Serviço | Source | Proteção | Health/readiness |
 |---|---|---|---|
 | `pic-api` | backend / `deploy` | CI backend | `/saude`, 30 s |
-| `pic-worker` | backend / `deploy` | CI backend | cron `null` por pausa operacional, volume `/data` (confirmado em 2026-10-19) |
+| `pic-worker` | backend / `deploy` | CI backend | cron `null` por pausa operacional, restart `NEVER`, volume `/data` (reconfirmado em 2026-10-20) |
 | `pic-web` | frontend / `deploy` | CI frontend | `/`, 30 s |
 | Postgres | serviço gerenciado | — | Railway |
 
@@ -115,10 +131,21 @@ O PR #74 do backend fechou o falso verde: `quarentena`, `sem_deposito`,
 `corrompido` e status desconhecido encerram a agenda com erro; F06 em `NXDOMAIN`
 usa o exit code `5`; e ausência esperada de publicação em F02/F03 continua em
 `0`. Os pipelines Woodpecker #14 e #15 passaram e promoveram
-`main == deploy == 51eb12dd8ba95fc3eb90832287d3f58c83928b77`. O worker não
-foi reimplantado nem executado, portanto o operador ainda deve conferir resumo,
-logs e deltas no primeiro one-shot desse SHA. O procedimento detalhado está em
+`main == deploy == 51eb12dd8ba95fc3eb90832287d3f58c83928b77`. O worker teve
+o caminho feliz exercitado em 2026-10-20: o deployment
+`59506094-6e6e-4a4f-964f-840f6ca580c1` executou três fontes sem erro e deixou
+F06 fora da allowlist. O backfill F02 `2026-05` foi isolado no deployment
+`50e3219a-51bd-4139-b651-cb5f4916c3a0`, que terminou normalmente. Depois dos
+jobs, o serviço voltou a `/railway.worker.json` com cron `null`. O operador
+continua obrigado a conferir resumo, logs e deltas. O procedimento detalhado
+está em
 `docs/operacao-migracoes.md` no repositório do backend.
+
+O CLI do Railway agora alerta que `railway.json`/`railway.toml` continuam
+funcionando somente até 2026-12-01. A migração para
+`.railway/railway.ts` é a próxima tarefa de infraestrutura; ela não foi misturada
+ao backfill para que mudança de configuração e mudança de dados mantenham trilhas
+de validação separadas.
 
 ## Watch paths
 
@@ -149,7 +176,8 @@ Frontend:
 /next-env.d.ts
 ```
 
-Assim testes, README e alterações apenas no workflow continuam sendo validados pelo GitHub Actions sem gastar rollout de produção quando o executável é idêntico.
+Assim testes, README e alterações apenas no pipeline continuam sendo validados
+pelo Woodpecker sem gastar rollout de produção quando o executável é idêntico.
 
 ## Healthchecks
 
