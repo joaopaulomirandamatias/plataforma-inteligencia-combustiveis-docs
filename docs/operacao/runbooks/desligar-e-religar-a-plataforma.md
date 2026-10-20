@@ -118,12 +118,21 @@ contagens prévias; depois, confira resumo e deltas por fonte. O PR #74 do
 backend corrigiu o falso verde: falha estruturada fecha com `1`, F06 em
 `NXDOMAIN` fecha com `5` e ausência esperada de publicação em F02/F03 preserva
 `0`. Os pipelines #14/#15 promoveram a correção em
-`main == deploy == 51eb12dd8ba95fc3eb90832287d3f58c83928b77`, mas o worker
-não foi reimplantado nem executado. Por isso o primeiro one-shot desse SHA ainda
-precisa provar a propagação do exit code no runtime; não use `SUCCESS` do
-deployment como substituto do resumo, logs e contagens. Esse caminho
-operacional não remove o NO-GO das migrações GEO 023/024 nem autoriza
-promovê-las antes do backup restaurável e do saneamento exigidos.
+`main == deploy == 51eb12dd8ba95fc3eb90832287d3f58c83928b77`.
+
+Em 2026-10-20, o caminho de sucesso foi exercitado de forma controlada. O
+deployment ANP `59506094-6e6e-4a4f-964f-840f6ca580c1` executou F01, GEO-ANP e
+F03 sem erro; F02 estava em dia para a agenda e F06 permaneceu fora da
+allowlist. O backfill F02 `2026-05` foi então executado separadamente no
+deployment `50e3219a-51bd-4139-b651-cb5f4916c3a0`. Ao final, o serviço voltou
+ao config path `/railway.worker.json`, com cron `null`, restart `NEVER` e volume
+`/data`. A execução não exercitou uma falha estruturada e, portanto, não
+substitui a futura prova operacional dos exits `1` e `5`.
+
+Não use `SUCCESS` do deployment como substituto do resumo, logs e contagens.
+Esse caminho operacional não remove o NO-GO das migrações GEO 023/024, não abre
+o gate da F06 e não autoriza restaurar o cron antes do backup, saneamento e
+critérios descritos abaixo.
 
 O cron normal só pode ser restaurado depois de **prova F06 bem-sucedida no
 runtime Railway e um ciclo completo sem erros**. DNS voltar a resolver, o

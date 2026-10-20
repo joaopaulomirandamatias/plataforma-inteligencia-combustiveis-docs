@@ -1,22 +1,20 @@
 # Ficha pública do posto — conteúdo e organização
 
-> **Estado:** especificação de produto com o contrato estruturado de qualidade
-> em produção. A organização dos detalhes em cartões cronológicos, descrita
-> abaixo, é a próxima iteração do portal e só deve ser tratada como ativa depois
-> de validação e promoção registradas no
-> [status canônico](../status-projeto.md). Este documento ainda contém dimensões
-> alvo que não estão no portal ou na API.
+> **Estado:** contrato estruturado, resumo factual e cartões cronológicos de
+> qualidade ativos em produção. Este documento ainda contém dimensões alvo que
+> não estão no portal ou na API; elas continuam identificadas separadamente.
 >
 > **Recorte observado em 2026-10-20:** a seção visual **Qualidade do
 > combustível** e o payload estruturado estão em produção. A ficha
 > `00097ff8-98c0-5d16-823e-66edb77c334c` foi observada com 6 agrupamentos e 48
 > ensaios reais, incluindo data, fonte, resultado, unidade e classificação. A
-> ficha `304d2b1e-e655-5f50-8db9-b8445179ce25` retornou agrupamentos vazios em
-> produção, embora 72 linhas PMQC tenham sido localizadas na competência
-> `2026-05` publicada pela fonte. Essa competência ainda não havia sido carregada
-> após a entrega da F02 mudar de CSV direto para ZIP e o backfill permanecer
-> pendente. Portanto, esse vazio é uma lacuna de cobertura, não evidência de
-> inexistência de ensaios na fonte.
+> ficha `304d2b1e-e655-5f50-8db9-b8445179ce25`, antes vazia por lacuna de
+> cobertura, recebeu o backfill de `2026-05`. Ela passou a exibir o limite de 8
+> agrupamentos, 65 ensaios, 3 produtos e `truncado: true`; o arquivo oficial
+> contém 72 linhas associáveis ao posto antes do limite público; os 65 ensaios
+> descrevem somente os oito agrupamentos devolvidos. O smoke confirmou
+> resultado, unidade, classificação, fonte e data,
+> sem erro no console nem overflow horizontal em viewport móvel.
 
 ## Objetivo
 
@@ -298,20 +296,22 @@ uma lacuna operacional entre fonte e snapshot. Somente uma verificação da
 cobertura permite afirmar qual dos três casos se aplica; nenhum deles autoriza
 inferir aprovação, reprovação ou inexistência de coleta.
 
-Em 2026-10-20, o posto
+Antes do backfill de 2026-10-20, o posto
 `304d2b1e-e655-5f50-8db9-b8445179ce25` demonstrou essa diferença: o payload de
 produção trouxe `agrupamentos: []`, mas a competência `2026-05` da fonte continha
 72 linhas PMQC associáveis ao estabelecimento. A publicação havia mudado de
 CSV direto para ZIP e essa competência ainda não tinha sido retrocarregada.
-Até o conector aceitar a nova embalagem e o backfill ser validado, a ficha deve
-identificar o vazio como cobertura incompleta, não como ausência na fonte.
+Depois da adaptação do conector e do backfill explícito, a mesma ficha passou a
+servir oito agrupamentos e 65 ensaios com `truncado: true`. O episódio permanece
+como caso de regressão: vazio com competência conhecida fora do snapshot deve
+ser tratado como cobertura incompleta, não como ausência na fonte.
 
 ## Matriz de conteúdo
 
 | Fonte/dimensão | Conteúdo público elegível | Organização na ficha | Estado do requisito |
 |---|---|---|---|
 | F01 — cadastro ANP | CNPJ PJ, bandeira, autorização, endereço e datas | Cadastro | Já existe parcialmente |
-| F02 — PMQC | Agrupamento derivado, produto, ensaio, resultado, unidade e classificação triestado | Resumo factual superior; um cartão por agrupamento no histórico oficial; ensaios em disclosure | Contrato/core e primeiro bloco visual **em produção**; organização cronológica em validação antes da promoção |
+| F02 — PMQC | Agrupamento derivado, produto, ensaio, resultado, unidade e classificação triestado | Resumo factual superior; um cartão por agrupamento no histórico oficial; ensaios em disclosure | **Em produção**, incluindo entrega ZIP e backfill explícito de `2026-05` |
 | F03 — preços ANP | Valor, unidade, produto, semana e cobertura regional | Preços e médias | Já existe parcialmente |
 | GEO-ANP/GEO-01 | Posição oficial ou inferida, com origem | Mapa/localização | Já existe parcialmente |
 | F04 — atos ANP | Processo, ato, situação e datas, se a granularidade pública permitir | Linha do tempo oficial | Sem contrato público aprovado; não exibir |
@@ -333,11 +333,12 @@ de integração coordenadas:
   hidratação e avisos metodológicos;
 - as suítes locais de contrato, core e portal passaram.
 
-A iteração seguinte separa a faixa factual do detalhe: mantém as contagens no
-topo e move cada agrupamento derivado para um cartão cronológico no Histórico
-oficial, com os ensaios em disclosure. Até haver evidência de testes, merge,
-deploy e smoke dessa iteração, a descrição acima é especificação de produto,
-não afirmação sobre o HTML servido em produção.
+A iteração seguinte separou a faixa factual do detalhe: manteve as contagens no
+topo e moveu cada agrupamento derivado para um cartão cronológico no Histórico
+oficial, com os ensaios em disclosure. O PR #39 do portal, merge
+`72b5ed55d504cca421989a01b424ba941a616a3b`, pipeline Woodpecker #54 e
+deployment Railway `eeb4d0ba-d1e3-4e93-99af-11774c9f609e` registram sua
+validação e promoção.
 
 Em 2026-10-19, a camada do portal foi promovida primeiro. Os PRs #35/#36 foram
 mesclados, `main` e `deploy` ficaram em
@@ -356,11 +357,20 @@ O smoke da ficha `00097ff8-98c0-5d16-823e-66edb77c334c` confirmou 6 agrupamentos
 e 48 ensaios e a interface exibiu contagens triestado, resultado, unidade,
 fonte e data sem erros no console.
 
+O PR #75 do núcleo, merge
+`d1bf3bb5c67acbec9608ac6006221366400d8c64`, passou pelos pipelines Woodpecker
+#16 e #17 e levou a ingestão ZIP da F02 à produção. O backfill Railway
+`50e3219a-51bd-4139-b651-cb5f4916c3a0` leu 65.226 linhas, vinculou 64.425 fatos
+e deixou 801 pendências em 23 chaves, sem descarte. Na ficha-alvo, o limite do
+contrato explica a diferença de escopo entre as 72 linhas associáveis na fonte
+e os 65 ensaios visíveis: somente oito agrupamentos entram e `truncado: true`
+informa que há agrupamento adicional, sem publicar total.
+
 Para cumprir esta especificação por inteiro ainda é necessário:
 
-1. adaptar e provar a ingestão F02 para a entrega ZIP e executar backfill
-   controlado da competência `2026-05`, reconciliando as 72 linhas do posto
-   `304d2b1e-e655-5f50-8db9-b8445179ce25` sem duplicar fatos;
+1. acompanhar as 801 pendências de vínculo da carga F02, medir cobertura por
+   estabelecimento e manter competências descobertas, carregadas e servidas sob
+   monitoramento;
 2. remover o NO-GO de backup/PITR do núcleo e executar com segurança a sequência
    das migrações 023/024 do PR #70;
 3. ampliar o smoke automatizado do bloco PMQC para payload de hidratação,
@@ -420,9 +430,9 @@ populacional só aparece quando houver denominador documentado.
 - [x] testes de conteúdo e de interface provam que a faixa não publica
       percentual, nota, taxa, índice de desempenho, score, ranking ou
       classificação do posto;
-- [ ] o portal promovido mantém somente o resumo factual no bloco superior e
+- [x] o portal promovido mantém somente o resumo factual no bloco superior e
       apresenta exatamente um cartão cronológico por agrupamento derivado;
-- [ ] cada cartão traz data/fonte e contagens triestado antes da expansão, e
+- [x] cada cartão traz data/fonte e contagens triestado antes da expansão, e
       cada ensaio repete data/fonte dentro de disclosure acessível;
 - [ ] os testes distinguem lista vazia, resposta legada sem o campo e
       competência conhecida ainda não ingerida;
