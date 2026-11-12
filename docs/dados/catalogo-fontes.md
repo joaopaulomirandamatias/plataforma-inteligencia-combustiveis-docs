@@ -98,7 +98,7 @@ Decisão da F0-01, arbitrada de novo na verificação da F0-02: **tolerante a co
 | Papel | **Sinal de contexto oficial** na linha do tempo; não é rótulo nem prova de responsabilidade do fornecedor |
 | Riscos | Viés de cobertura e de quem procura o Procon; categorias podem conter linguagem acusatória; o portal pode remover ou substituir recursos; o arquivo aberto contém atributos do consumidor |
 | Cuidados | Descobrir o recurso pelo catálogo, validar esquema e preservar a zona bruta; vincular **somente por CNPJ exato**, nunca por nome aproximado; persistir no fato apenas data e classificações do atendimento — sexo, faixa etária, CEP e texto de consumidor não entram; a borda pública aplica a política de linguagem |
-| Situação *(verificado em 2026-09-14)* | `dados.mj.gov.br` **não resolve (NXDOMAIN)** desde pelo menos 2026-08-28; a agenda classifica a fonte como `indisponível`, sem contar como erro da execução. Candidato a substituto: os [dados abertos do consumidor.gov.br](https://www.consumidor.gov.br/pages/dadosabertos/externo/) (responde 200; layout e granularidade por CNPJ ainda **não verificados**) |
+| Situação *(verificado em 2026-10-19)* | `dados.mj.gov.br` continua **indisponível por `NXDOMAIN`**; não há nova fonte substituta validada. Desde o PR #74 do núcleo, mesclado em `51eb12dd8ba95fc3eb90832287d3f58c83928b77`, o one-shot exclusivo da F06 falha fechado com exit `5` nesse cenário, em vez de transformar indisponibilidade em sucesso. Os [dados abertos do consumidor.gov.br](https://www.consumidor.gov.br/pages/dadosabertos/externo/) permanecem apenas candidato: layout e granularidade por CNPJ ainda **não foram verificados**. |
 
 ## F07 — IBGE / bases geográficas
 

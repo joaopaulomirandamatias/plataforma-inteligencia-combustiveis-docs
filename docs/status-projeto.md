@@ -1,6 +1,6 @@
 # Status canônico do projeto
 
-**Atualizado em:** 2026-10-20
+**Atualizado em:** 2026-11-12
 
 **Escopo:** Plataforma de Inteligência de Combustíveis (PIC)
 
@@ -44,14 +44,81 @@ plataforma pública.
 | Frente | Implementado | Validado tecnicamente | Ativo em produção | Aceito operacionalmente |
 |---|---|---|---|---|
 | Documentação canônica | Sim | Sim — gates de contrato e léxico | Não se aplica | Uso contínuo; revisão permanece obrigatória |
-| Núcleo/API pública | Sim | Sim, com dívida localizada de branches/CI | **Sim** | Operação pública observada; não equivale a aceite institucional |
-| Portal público | Sim | Sim — testes e build | **Sim** | Operação pública observada; melhorias antigas ainda requerem triagem |
+| Núcleo/API pública | Sim | Sim, com dívida localizada de branches/CI | **Não — fora do ar desde 2026-11-08** (ver incidente abaixo) | Suspenso enquanto a API não responde |
+| Portal público | Sim | Sim — testes e build | **Parcial** — processo no ar, consulta degradada por depender da API | Suspenso enquanto a consulta não volta |
 | Gestão — G1 (tenant/IAM) | Sim | Sim | **Sim**, serviços observados | **Pendente** |
 | Gestão — G2 (publicação) | Sim | Sim | **Sim**, serviços observados | **Pendente** |
 | F1 — engenharia pré-rótulo | Sim | Sim | Sim | Validação empírica humana **pendente** |
 | F09 — Inmetro/Ipem | Mapa e pedido documentados | Fontes públicas avaliadas | Não | Convênio e dados por bico **pendentes** |
 
+## Incidente aberto — API pública fora do ar desde 2026-11-08
+
+**Este incidente tem precedência sobre o resto deste documento.** As seções
+seguintes descrevem o estado anterior a ele e permanecem como registro datado;
+onde disserem que a API pública está ativa em produção, leia-se *estava*, até
+2026-11-08.
+
+### O que está acontecendo
+
+`pic-api` não tem deployment vivo. O portal `pic-web` responde `HTTP 200`, mas
+busca, ficha e mapa devolvem "Consulta indisponível no momento", porque
+dependem da API. Para quem visita, a função central do produto público está
+quebrada.
+
+### Cronologia, medida em 2026-11-12
+
+| Quando (UTC) | O que aconteceu |
+|---|---|
+| 2026-11-08 04:17:33 | Desligamento deliberado de **todo** o ambiente — `Stopping Container` e shutdown ordenado do Uvicorn, sem crash |
+| 2026-11-11 05:03–05:06 | Religar: **onze** serviços voltam `SUCCESS` a partir do GitHub |
+| 2026-11-11 05:03 | `pic-api` **não recebe deployment algum** — nenhuma falha, nenhum log |
+| 2026-11-12 | Incidente identificado; API segue fora do ar, portal degradado |
+
+### Causa raiz
+
+A fonte do `pic-api` guardava `source.repo` **sem `source.branch`**. Sem branch
+rastreada não há commit de onde construir, e o religar passou por cima do
+serviço em silêncio. O `pic-worker`, mesmo repositório, tem
+`{repo, branch: "deploy"}` e voltou normalmente no mesmo religar.
+
+O único artefato que restou religável no `pic-api` é o build **falhado de
+2026-08-28** (`regions: []`, `snapshotId: null`, `canRedeploy: false`); os dois
+deployments reais mais recentes, de 19 e 20/10, estão `REMOVED` e também sem
+religar. Por isso `redeploy` — em CLI ou MCP — não resolve este caso: não há
+build a reaproveitar nem commit a construir. A armadilha está descrita em
+[Desligar e religar a plataforma](operacao/runbooks/desligar-e-religar-a-plataforma.md),
+armadilha 3.
+
+### Correção pendente de autorização
+
+Reconectar a fonte do `pic-api` à branch `deploy` e acompanhar o rollout.
+Alvo apurado em 2026-11-12: `main == deploy == aec1b90`. O diff entre o commit
+que o worker roda em produção (`9f8ef76`) e `aec1b90` são quatro commits que
+**não tocam o caminho servido pela API** — mexem em `cli_er`, pipeline de ER,
+população de experimento e no preflight da F02 — e acrescentam a migração
+`023_preflight_f02_read_only.sql`. Logo a restauração não muda comportamento de
+API; a migração pendente é da F02 e precisa de passagem própria pelo Migrator.
+
+**Ainda não verificado:** o conteúdo de `public._migracao` em produção, porque a
+leitura do banco exige a rede privada e o caminho documentado passa pelo
+`pic-api`, que está fora do ar. Não afirmar o que já foi aplicado sem essa
+leitura.
+
+### Nota operacional — a MCP não lista este projeto
+
+`list-projects` da MCP da Railway devolve apenas o workspace *João Paulo's
+Projects* e **não inclui** `Plataforma Combustível`, que vive no workspace
+*João Paulo Miranda Matias's Projects*. As demais ferramentas operam
+normalmente quando recebem o `projectId` explícito
+(`626ec780-fc73-4b2a-a0bc-8c0acf6c08a4`, ambiente `production`
+`a133ccd1-4a91-4d3e-b2cf-cbb9bfc455a3`). Ausência na listagem **não** é ausência
+de acesso — e concluir o contrário levaria a recriar projeto já existente.
+
 ## Evidência de produção em 2026-10-11
+
+> **Registro datado, superado em parte.** O que esta seção descreve foi medido em
+> 2026-10-11 e valia naquela data. A API pública não está mais neste estado —
+> veja o incidente acima.
 
 A verificação coordenada dos repositórios e do ambiente de produção encontrou:
 
