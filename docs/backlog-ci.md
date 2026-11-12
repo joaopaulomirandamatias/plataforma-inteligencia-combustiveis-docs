@@ -208,12 +208,82 @@ Frontend:
 Assim testes, README e alterações apenas no pipeline continuam sendo validados
 pelo Woodpecker sem gastar rollout de produção quando o executável é idêntico.
 
+## Dois achados de 2026-11-12
+
+### O piso de dependência do portal vivia em dois lugares, e eles divergiram
+
+O pnpm 11 **deixou de ler** o campo `pnpm` do `package.json`. Enquanto a CI usa
+pnpm 9 e o ambiente local já está em 12.x, a mesma política de `overrides`
+precisa existir nos dois lugares — e ela divergiu exatamente no piso que mais
+importava:
+
+| Onde | `sharp` | Quem lê |
+|---|---|---|
+| `package.json` → `pnpm.overrides` | `>=0.35.5` | pnpm 9 (a CI) |
+| `pnpm-workspace.yaml` → `overrides` | `>=0.35.0` *(corrigido)* | pnpm ≥ 11 |
+| `pnpm-lock.yaml` | `>=0.35.5` | escrito pelo pnpm 9 |
+
+O piso subiu para `.5` em 2026-10-11 porque a faixa aceita pelo Next ainda
+admitia versão vulnerável. Quem instalasse com pnpm moderno recebia de volta o
+que o bump existia para excluir — **sem sintoma algum**, porque o lockfile foi
+escrito pelo pnpm 9 e o `pnpm audit` lê o que já foi resolvido, não o que o
+próximo install resolveria. Auditoria verde sobre árvore certa, política vigente
+frouxa.
+
+Corrigido alinhando o workspace para `>=0.35.5` — nunca para baixo, que
+desfaria uma decisão de segurança com motivo registrado. A concordância deixou
+de ser disciplina: `src/testes/overrides.test.ts` reprova quando os dois blocos
+divergem, e sai do repositório junto com o bloco do `package.json` quando o
+runner subir para pnpm ≥ 11.
+
+**Pendência conhecida:** o `pnpm` local recusa operar — `node_modules` fora de
+sincronia com o lockfile, e instalar removeria `pnpm.overrides` dele. Os
+comandos de gate do README do portal (`pnpm exec tsc`, `pnpm test`) **não rodam
+hoje** sem antes decidir o install; os gates foram executados pelos binários já
+presentes em `node_modules`. Decidir o install é trabalho próprio, porque
+reescreve o lockfile.
+
+### Severidade de log derivada do stream contava arranque saudável como erro
+
+Na pilha de gestão, cada deploy produzia três linhas de **erro** que não eram
+erro:
+
+    severity=error  INFO:     Started server process [1]
+    severity=error  INFO:     Application startup complete.
+    severity=error  INFO:     Uvicorn running on http://0.0.0.0:8000
+
+A Railway deriva severidade do **stream**, e o `LOGGING_CONFIG` padrão do
+Uvicorn manda o handler `default` para `stderr`; o `access`, em `stdout`,
+chegava como `info`. Mesmo processo, dois veredictos, decididos pelo descritor
+de arquivo.
+
+Isso corrompe a contagem de avisos do ambiente e ensina o operador a ignorar a
+lista — a mesma lição que levou a tratar a indisponibilidade da F06 como fonte
+indisponível em vez de erro de execução.
+
+Consertado em `pic-gestao` cortando por **nível** e não por stream: abaixo de
+`WARNING` sai por `stdout`, `WARNING` e acima por `stderr`. Apontar tudo para
+`stdout` seria errado — rebaixaria falha real a `info`, trocando ruído por
+silêncio.
+
+**Mesmo defeito pendente no núcleo:** as linhas de shutdown do `pic-api`
+aparecem com `severity=error` pela mesma razão. Vale aplicar o mesmo corte
+quando o serviço voltar.
+
 ## Healthchecks
 
 - `pic-api`: `/saude` deve responder 200; o endpoint inclui a dependência de banco necessária ao runtime.
 - `pic-web`: `/` deve ficar pronto antes do rollout ser considerado saudável.
 
 “Container iniciou” não é mais suficiente para considerar API/web aptos a servir.
+
+**Lacuna aberta, provada pelo incidente de 2026-11-08.** O healthcheck do portal
+é `/`, que é servido sem consultar a API. Com a API fora do ar o portal responde
+`200` e a busca, a ficha e o mapa devolvem "Consulta indisponível no momento" —
+ou seja, qualquer monitor apontado para o portal viu verde durante quatro dias
+de indisponibilidade da função central. Fechar isso pede uma sonda do portal que
+reflita a alcançabilidade da API; `/` não serve, e `sitemap.xml` tampouco, porque
+suas fatias são servidas vazias quando a API falta.
 
 ## Regra para mudanças futuras
 
