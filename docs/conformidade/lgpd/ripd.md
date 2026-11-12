@@ -93,3 +93,7 @@ Enquanto a lista não zera, o conector F05 pode **arquivar** os dumps mensais (p
 **Riscos adicionais:** denúncia falsa/maliciosa, spam, anexos executáveis, exposição de identidade ou localização, associação de posto incorreto, vazamento por protocolo enumerável, inferência por mensagens de estado, acessos indevidos cross-tenant, inclusão acidental em RAG/ML/portal ou transferência indevida a posto. **Mitigações propostas:** antimalware, quarentena, limites por arquivo/requisição, antiabuso, amostra de testes com atores distintos, logs sem conteúdo, segregação de reportante e anexos, lista de acesso de menor privilégio e revisão independente de segurança/privacidade.
 
 **Proibições:** manifestação não é registro oficial de infração, não alimenta `score`, não é exibida em ficha pública, não abre auto ou sanção automaticamente e não pode ser encaminhada ao posto sem análise específica do devido processo e da segurança do denunciante.
+
+## Relação com o modelo de ameaças do PIC Verifica (2026-11-12)
+
+O [modelo de ameaças](../../seguranca/modelo-ameacas-pic-verifica-2026.md) acrescenta prioridades de autorização por caso, proteção de contatos e anexos, auditoria de leitura, antiabuso, retenção e resposta a incidentes. Sua existência **não conclui** o RIPD: controlador, base legal e riscos residuais do tratamento T7 de manifestações permanecem sujeitos a decisão do jurídico/encarregado **antes de qualquer coleta real**.
