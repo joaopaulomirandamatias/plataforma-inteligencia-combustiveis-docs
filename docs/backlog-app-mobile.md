@@ -21,9 +21,9 @@ documento é a fila dessas necessidades; não é evidência de entrega.
 > [gestao#48](https://github.com/joaopaulomirandamatias/plataforma-inteligencia-combustiveis-gestao/issues/48).
 > Cada item abaixo é uma sub-issue dela, no repositório que precisa fazer o
 > trabalho. Relato de ocorrência (G6-B) e leitura de bomba (G8-M) **não** fazem
-> parte do app implementado e não aparecem nele. O app usa hoje a marca do
-> portal, “Combustível em Dia”; a escolha entre esse nome e “PIC Verifica” está
-> em aberto.
+> parte do app implementado e não aparecem nele. O app se chama **PIC Verifica**
+> desde 2026-11-12 (antes usava a marca do portal, “Combustível em Dia”, que
+> continua valendo só para o portal).
 
 ## 1. Como ler
 
