@@ -277,13 +277,46 @@ quando o serviço voltar.
 
 “Container iniciou” não é mais suficiente para considerar API/web aptos a servir.
 
-**Lacuna aberta, provada pelo incidente de 2026-11-08.** O healthcheck do portal
-é `/`, que é servido sem consultar a API. Com a API fora do ar o portal responde
-`200` e a busca, a ficha e o mapa devolvem "Consulta indisponível no momento" —
-ou seja, qualquer monitor apontado para o portal viu verde durante quatro dias
-de indisponibilidade da função central. Fechar isso pede uma sonda do portal que
-reflita a alcançabilidade da API; `/` não serve, e `sitemap.xml` tampouco, porque
-suas fatias são servidas vazias quando a API falta.
+**Lacuna fechada em 2026-11-12.** O incidente de 2026-11-08 a provou: o
+healthcheck do portal é `/`, servido sem consultar a API, então o portal
+respondeu `200` durante quatro dias em que a busca, a ficha e o mapa devolviam
+"Consulta indisponível no momento". Qualquer monitor apontado para o portal viu
+verde. O que custou quatro dias não foi consertar — foi perceber.
+
+Nasce `GET /saude` **no portal** (`src/app/saude/route.ts`), para
+**monitoração**, não para rollout:
+
+| Estado | HTTP | Corpo |
+|---|---:|---|
+| API respondeu 200 | 200 | `{"portal":"ok","api":"ok"}` |
+| API respondeu que não pode servir | 503 | `{"portal":"ok","api":"degradada","codigo":"…"}` |
+| API não respondeu | 503 | `{"portal":"ok","api":"inalcancavel"}` |
+| `PIC_API_URL` ausente | 503 | `{"portal":"ok","api":"nao_configurada"}` |
+
+Quatro decisões que valem registro:
+
+1. **O healthcheck de deploy do portal continua sendo `/`**, e deve continuar.
+   Amarrar o rollout do portal à API acopla os dois serviços, e um portal que se
+   recusa a subir enquanto a API está fora remove a única coisa que ainda
+   funcionava: a página que explica o que o portal é. Esta sonda é para o
+   monitor, não para o orquestrador.
+2. **`degradada` também é 503.** Monitor olha o código antes do corpo, e muitos
+   só olham o código; API que responde mas não serve deixa a consulta
+   igualmente quebrada para quem visita. A distinção útil — procurar o banco ou
+   procurar o serviço — vive no corpo.
+3. **O corpo é pobre de propósito.** Sonda de saúde é o endereço mais exposto e
+   menos autenticado do serviço; mensagem de exceção de rede carrega host, porta
+   e às vezes DSN. Sai `codigo`, vocabulário fechado do contrato, e nunca a
+   mensagem — a mesma razão pela qual a API pública mantém `detalhe` fora do
+   `/saude`.
+4. **`no-store` nos dois sentidos**, na chamada à API e na resposta ao monitor.
+   Sonda servida de cache relata o passado: durante a queda ela diria `ok` por
+   mais um ciclo de revalidação, que é precisamente o atraso que um monitor não
+   pode ter.
+
+Doze testes, portantes nos dois sentidos: uma sonda que devolvesse `200` sempre
+— o defeito original reimplementado com endereço novo — reprova em três; uma que
+vazasse a mensagem da exceção reprova em dois.
 
 ## Regra para mudanças futuras
 
