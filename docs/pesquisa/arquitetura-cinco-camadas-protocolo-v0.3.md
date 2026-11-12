@@ -74,3 +74,7 @@ O produto desta fase é uma **síntese rastreável** da literatura e das normas,
 - [ ] Revisão do orientador antes de publicar o protocolo definitivo
 
 **Leitura complementar:** [Bibliografia, datasets e manuais — 2026](referencias-e-fontes-2026.md). Para o estado **implementado** do produto, usar exclusivamente [status-projeto.md](../status-projeto.md).
+
+## Desdobramento de produto independente da revisão científica — PIC Verifica (12/11/2026)
+
+O projeto passou a prever um [APP de consulta, verificação digital e relatos](../produto/pic-verifica-app.md) como canal futuro da PIC. Esse plano **não altera a natureza conceitual desta pesquisa**: nenhuma bomba, leitura Bluetooth, sensor ou resultado de denúncia foi testado ou validado. A NIT-Sinst-020, a Portaria Inmetro 227/2022 (e alterações) e certificados de Objetos Metrológicos serão pesquisados para verificar se e como dados assinados podem ser coletados **legalmente e em modo leitura**. Relatos do cidadão são **declarações não verificadas**, sob governança privada, e não entram como rótulos de fraude ou como substitutos de evidência laboratorial/metrológica.
