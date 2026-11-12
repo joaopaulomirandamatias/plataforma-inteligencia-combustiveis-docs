@@ -113,3 +113,11 @@ O **PIC Verifica** é um canal mobile único, com três capacidades complementar
 - **G9-P (proposto):** piloto institucional de triagem e evidência associada; exige governança, operador responsável, procedimento de resposta, treinamento e testes de privacidade.
 
 **Próximas decisões:** titularidade e privacidade dos dados; quem recebe denúncias; se aceitamos envio anônimo; prazos de atendimento; critérios de parceria com órgãos; fabricante/modelo para laboratório; avaliação de viabilidade Android Bluetooth serial vs BLE.
+
+## Extensão de segurança e estratégia (12/11/2026)
+
+O escopo do produto inclui os fundamentos adicionais do [modelo de ameaças](../seguranca/modelo-ameacas-pic-verifica-2026.md): anonimato/confidencialidade dependentes de análise jurídica, segregação do denunciante, inspeção de anexos, acesso por caso, autenticação do instrumento independente do nome Bluetooth, assinatura separada de verdade física, isolamento OT/IT, segurança mobile e recuperação de incidentes.
+
+O [portfólio de recursos priorizados](oportunidades-priorizadas-2026.md) propõe como etapas posteriores **Meu Abastecimento (recibos pessoais), passaporte digital da bomba, dossiê verificável, frotas e reconciliação de estoques**. Essas sugestões **não entram automaticamente no MVP**, que conserva prioridade para relato seguro e consulta. O [adendo de investimento](../planejamento/adendo-investimento-pic-verifica-2026.md) exige reorçamento por gates sem inventar custos novos.
+
+**Regras adicionais de interpretação:** capacidade nominal de tanque não permite concluir fraude; NFC-e é registro fiscal, não prova física do volume; registro Bluetooth íntegro não garante volume entregue; relato não se transforma em fato oficial. Cada fonte exige compatibilidade temporal, origem e incerteza.
