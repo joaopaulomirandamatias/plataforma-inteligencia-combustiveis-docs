@@ -2,6 +2,8 @@
 
 Um registro por fonte, no padrão do [Plano Diretor](../arquitetura/plano-diretor.md) (`docs/dados/catalogo-fontes/`). Campos fixos: o que traz, cadência, formato, acesso, papel no sistema, riscos conhecidos e cuidados de ingestão. O que ainda falta integrar, por órgão e empresa, está no [mapa de integrações](mapa-de-integracoes.md).
 
+> **Atualização de pesquisa (12/11/2026):** a [bibliografia e fontes 2026](../pesquisa/referencias-e-fontes-2026.md) registra nova publicação de dados da ANP (PMQC até setembro de 2026 e arquivo de ações fiscalizatórias) e um conjunto acadêmico de imagens de placas de bombas. Este registro é **documental**: não redefine as F01–F11, não confirma ingestão de competências novas e não autoriza conector adicional. O [adendo conceitual das cinco camadas](../pesquisa/arquitetura-cinco-camadas-protocolo-v0.3.md) é pesquisa futura, não módulo da PIC v1.
+
 > [!warning] Verificação pendente antes da F0
 > URLs, layouts e granularidade marcados com ⚠ precisam de confirmação na fonte oficial antes de escrever o conector — endereços de publicação de dado público brasileiro mudam sem aviso e sem redirect.
 
