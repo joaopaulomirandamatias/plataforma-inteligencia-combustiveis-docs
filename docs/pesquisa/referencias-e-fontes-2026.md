@@ -51,3 +51,20 @@
 - [ ] Tratar a atualização pública de C01/C02 como **novo achado documental**, não como prova de ingestão, backfill, suporte do backend ou atualização de produção.
 
 **Nota de governança:** a PIC v1 continua sendo a fonte canônica do que foi entregue; esta página registra fontes candidatas para **pesquisa**, sem incorporar software nem validar modelo.
+
+## D. Protocolos e interfaces de bombas inteligentes (adendo 12/11/2026)
+
+Estas referências complementam a revisão para a futura função do [PIC Verifica](../produto/pic-verifica-app.md). **Não** demonstram Bluetooth disponível em qualquer bomba, acesso irrestrito por aplicativo terceiro ou streaming contínuo. Antes de desenvolver, verificar edição, alteração vigente, marca, modelo e permissões.
+
+| Documento/fonte | Tipo | Pergunta de pesquisa e cautela |
+| --- | --- | --- |
+| [Portaria Inmetro nº 227/2022](https://www.ipem.pr.gov.br/sites/default/arquivos_restritos/files/documento/2022-06/portaria_227_26_05_2022_bombas_medidoras_nova_julho_2022.pdf) e alterações aplicáveis | Regulamentação brasileira | Requisitos de interface de verificação, registro do último abastecimento, integridade e software; conferir o texto consolidado/alterações antes de alegar obrigação |
+| [NIT-Sinst-020 — catálogo de software do Inmetro](https://www.gov.br/inmetro/pt-br/assuntos/metrologia-legal/documentos-normativos-para-metrologia-legal/assunto/software) | Procedimento técnico | Identificar protocolo serial, transporte, autenticação, pacotes e permissões; **SPP e BLE/GATT não são equivalentes** |
+| [Certificação digital de objetos metrológicos — Inmetro](https://www.gov.br/inmetro/pt-br/assuntos/metrologia-legal/certificacao-digital) | Infraestrutura de confiança | Estudar certificados OM-BR, NIT-Dmtic-009 e procedimentos de validação criptográfica |
+| [IFSF — International Forecourt Standards Forum](https://www.ifsf.org/) | Padronização de integração de pista | Avaliar API/controlador para dados operacionais **mediante contrato/permissão**; não confundir com interface Bluetooth metrológica |
+| [Wertco Assistant na Google Play](https://play.google.com/store/apps/details?id=com.companytec.wertco_bluetooth) | Exemplo de aplicativo de fabricante | Investigar como o fabricante implementa a NIT-Sinst-020 e que serviços são públicos/restritos; não pressupor API aberta |
+| [IPEM-SP — Bombas Seguras](https://www.ipem.sp.gov.br/index.php/servicos/consultas/bombas-seguras) | Serviço público | Identificação de instalações de bombas certificadas; não presumir app público já disponibilizado |
+
+**Rastreabilidade da pesquisa:** para cada bomba, construir ficha com marca, modelo, nº da Portaria de Aprovação de Modelo, versão de firmware, data e estado da certificação, transportes, comandos **somente leitura** autorizados, tipo do pacote e certificado, limitação, riscos de área classificada, versão da norma e evidências documentais. **Teste só em bancada autorizada e com avaliação de segurança apropriada.**
+
+A função de **manifestação** é canal separado de relato do usuário (não dado metrológico): ingresso em domínio privado e análise humana. Não utilizar relatos como rótulos positivos de fraude em treino de modelos ou como critério de reputação.
