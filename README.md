@@ -21,6 +21,7 @@ Os dados necessários para responder "este posto é confiável?" já existem —
 | Arquiteto / dev | [`docs/arquitetura/plano-diretor.md`](docs/arquitetura/plano-diretor.md) — o plano diretor completo (C4, DDD, padrões, segurança, APIs) |
 | Quem quer as decisões | [`docs/arquitetura/adr/`](docs/arquitetura/adr/) — ADRs fundadores e decisões posteriores |
 | Eng. de dados | [`docs/dados/catalogo-fontes.md`](docs/dados/catalogo-fontes.md) — as fontes F01–F11, riscos e cuidados; [`mapa-de-integracoes.md`](docs/dados/mapa-de-integracoes.md) — o que falta, por órgão e empresa ([PDF](docs/apresentacao/mapa-de-integracoes.pdf)) |
+| Pesquisador / orientador | [`docs/pesquisa/arquitetura-cinco-camadas-protocolo-v0.3.md`](docs/pesquisa/arquitetura-cinco-camadas-protocolo-v0.3.md) — adendo conceitual, sem implementação; [`referências e fontes 2026`](docs/pesquisa/referencias-e-fontes-2026.md) — bibliografia e bases verificadas |
 | Quem chegou agora | [`docs/onboarding/glossario.md`](docs/onboarding/glossario.md) — a linguagem ubíqua |
 | Público não técnico | [`docs/apresentacao/plataforma-v1-didatico.pdf`](docs/apresentacao/plataforma-v1-didatico.pdf) — versão didática ilustrada |
 
