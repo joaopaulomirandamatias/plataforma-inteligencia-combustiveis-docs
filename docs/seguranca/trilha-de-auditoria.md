@@ -57,3 +57,9 @@ A trilha contém dado pessoal de operadores e fiscais (ator). Retenção longa �
 1. A corrente prova integridade **a partir da captura** — sensor errado ou fonte adulterada antes da ingestão produzem registro íntegro de dado errado (por isso existem validação de chegada e o Refutador).
 2. O relógio é o do sistema; disputa fina de ordem entre eventos de fontes distintas se resolve pela dimensão de transação da base, não pela trilha.
 3. A âncora é diária: adulteração no mesmo dia, antes da âncora, é detectável apenas pela verificação interna — janela declarada e aceita.
+
+## Extensão futura: manifestações e evidências da bomba
+
+O desenho da corrente acima é **existente como especificação de referência** para a PIC. A futura operação do [PIC Verifica](../produto/pic-verifica-app.md) precisa de controles adicionais para um novo conjunto de ativos: contatos do denunciante, anexos, leitura de relatos, exportação, encaminhamento ao órgão, pacote original da bomba, resultado de validação criptográfica, relógios distintos e autorização de acesso.
+
+Os requisitos de confidencialidade, rastreabilidade e testes estão no [modelo de ameaças 2026](modelo-ameacas-pic-verifica-2026.md). **Não considerar implementado** um novo cofre de evidências, âncora externa, auditoria de leitura, cadeia de custódia de uploads ou integração metrológica pelo simples fato de estarem especificados. A cadeia assinada protege integridade após o ingresso; ela não atesta a medição física, a veracidade de um relato ou a autoria de um arquivo antes da captura.
