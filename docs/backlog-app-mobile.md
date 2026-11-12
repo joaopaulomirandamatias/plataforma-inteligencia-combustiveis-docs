@@ -27,8 +27,8 @@ o contrato só muda pelo `openapi.yaml`, com o rito de sempre.
 
 ## 2. O que o app já faz
 
-Implementado e validado tecnicamente (typecheck, lint, 76 testes e exportação
-web) em 2026-11-12. **Não** está em produção nem em loja, e ainda não foi
+Implementado e validado tecnicamente (typecheck, lint, 83 testes, exportação
+web e empacotamento para iOS e Android) em 2026-11-12. **Não** está em produção nem em loja, e ainda não foi
 exercitado contra a API real: o ambiente de desenvolvimento usado não alcançava
 o host de produção, então a validação usou respostas de amostra na forma do
 contrato.
@@ -38,7 +38,7 @@ contrato.
 | Início e busca | `GET /saude` |
 | Resultados | `GET /v1/postos` |
 | Ficha do posto: resumo, qualidade, preços, cadastro, fontes | `GET /v1/postos/{posto_id}`, `GET /v1/postos/{posto_id}/contexto-regional` |
-| Perto de mim | `GET /v1/postos/mapa` (modo raio) |
+| Perto de mim, em lista e em mapa | `GET /v1/postos/mapa` (modo raio) |
 | Visão em outra data (seletor e link com `as_of`) | as mesmas da ficha, com `as_of` |
 | Compartilhar (ficha sempre atual ou link permanente do recorte) | nenhuma — monta o endereço do portal |
 | Canais oficiais e “como ler um resultado” | nenhuma — conteúdo mínimo embutido, sem citação de norma |
@@ -66,6 +66,7 @@ Repositório: `plataforma-inteligencia-combustiveis`.
 | APP-09 | Situação cadastral | 07, 10 | `situacao_cadastral`, já previsto no contrato como “fase Entrega”. |
 | APP-10 | Conteúdo do guia do consumidor | 24 a 27 | Conteúdo versionado e servido pela API (testes que o consumidor pode pedir, o que conferir no local, canais oficiais por UF, explicador do PMQC), com a referência de cada afirmação. Depende de revisão jurídica: as referências do mockup foram conferidas só por busca. |
 | APP-11 | Etanol × gasolina | 28 | Nova fonte (tabela PBE Veicular do Inmetro) e cálculo no backend. O app não faz a conta. |
+| APP-12 | Ordem declarada no modo raio | 05 Mapa | O contrato de `GET /v1/postos/mapa` não diz em que ordem os itens voltam nem quais ficam de fora quando `truncado` é verdadeiro. O app apresenta a lista pela `distancia_m` recebida e, no truncamento, só orienta a reduzir o raio. |
 
 ## 4. Itens de backend — gestão
 
@@ -87,13 +88,15 @@ Repositório: `plataforma-inteligencia-combustiveis-gestao`.
 
 ## 6. Próximos passos só do app
 
-Não dependem de backend novo:
+Não dependem de backend novo, mas dependem de decisão ou de aparelho:
 
-1. mapa nativo na aba “Perto de mim”, com marcador cheio para posição publicada
-   pela ANP e tracejado para posição estimada pelo endereço;
+1. chave do Google Maps para o build de Android — sem ela o modo mapa fica
+   oculto no Android, porque o SDK fecha o app;
 2. identificadores de loja, ícone e tela de abertura próprios, e o primeiro
    build de desenvolvimento;
-3. conferência com leitor de tela em aparelho real.
+3. abrir o app num aparelho: o mapa e a permissão de localização só foram
+   conferidos por teste de componente e no navegador;
+4. conferência com leitor de tela em aparelho real.
 
 As telas “testes que você pode pedir” e “o que conferir no local” (24 e 25 do
 mockup) **não** foram implementadas de propósito: cada frase delas cita uma
@@ -112,8 +115,10 @@ dispositivos, privacy review”. Situação em 2026-11-12:
 - **Testes em dispositivos:** não feitos. A conferência visual foi no
   navegador, com a exportação web do mesmo código.
 - **Revisão de privacidade:** não feita. O app não cria conta, não envia
-  localização exata e não grava coordenada, mas isso precisa de parecer do
-  encarregado antes de publicação em loja.
+  localização exata à API e não grava coordenada, mas isso precisa de parecer
+  do encarregado antes de publicação em loja. O modo mapa acrescenta um ponto
+  novo a avaliar: a área exibida é enviada ao provedor de mapas do aparelho
+  (Apple no iOS, Google no Android).
 - **Sobreposição com o aplicativo da ANP:** a pesquisa de 2026-11-12 indicou
   que a ANP lançou em julho de 2026 um aplicativo próprio, com nota de 0 a 5
   por posto. A informação veio de resultados de busca e precisa ser confirmada
