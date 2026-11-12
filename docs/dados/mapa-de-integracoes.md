@@ -102,13 +102,3 @@ Itens ⚠ acima, na ordem em que valem o esforço: layout e granularidade por CN
 ## O que não muda com nenhuma integração
 
 Nenhuma fonte, pública ou restrita, autoriza a plataforma a afirmar conduta: ela mostra fato, fonte e data e recomenda verificação; quem conclui é o órgão competente ([ADR-005](../arquitetura/adr/), [política de linguagem](../agentes/politica-de-linguagem.md)). Fontes restritas entram só com base legal escrita e desenho de minimização antes do primeiro byte ([RIPD](../conformidade/lgpd/ripd.md)).
-
-## Adendo de interpretação e priorização (2026-11-12)
-
-> **Não reescrever a fotografia histórica:** o levantamento original e seu PDF foram preparados com verificação principal de 14/09/2026 e atualizações documentais posteriores. A presente anotação **não** indica novos conectores implantados, nem modifica a fonte do gerador. Ver [status canônico](../status-projeto.md) e [catálogo](catalogo-fontes.md) para execução observada e cobertura.
-
-A atualização de produto [PIC Verifica](../produto/pic-verifica-app.md) contempla consulta, verificação autorizada de bomba compatível e relato protegido de ocorrências. Essas funções **não constituem fontes FXX públicas** e não alteram a classificação de acesso F09/F10, cartões-frota, automação ou ATG. Coleta Bluetooth é distinta de streaming por controlador de pista, que requer contrato e segurança OT/IT.
-
-**Correções de interpretação para novas publicações e regras:** (1) volume da transação acima da **capacidade nominal** do tanque do veículo é apenas **sinal de verificação**, não evidência suficiente de bomba fora de medida; considerar volume preexistente, capacidade real, veículo e erros cadastrais; (2) NFC-e/NF-e são registros fiscais, não medição física independente; comparar compras, vendas e estoques requer reconciliação, incerteza e datas compatíveis; (3) PMQC é ensaio/amostra e não abastecimento individual; (4) reclamação ou autuação não é fraude comprovada.
-
-**Novas propostas:** [carteira e prioridades](../produto/oportunidades-priorizadas-2026.md), [segurança e custódia](../seguranca/modelo-ameacas-pic-verifica-2026.md) e [adendo financeiro](../planejamento/adendo-investimento-pic-verifica-2026.md). Prioridades publicadas são hipóteses de engenharia sujeitas a aceite institucional e disponibilidade de dados.
