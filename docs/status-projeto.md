@@ -25,8 +25,8 @@ especificação aprovada não prova que o comportamento foi implementado.
 
 ## Topologia do projeto
 
-O produto tem **três pilares**, mas quatro repositórios físicos porque a
-plataforma pública separa núcleo/API e portal:
+O produto tem **três pilares**, mas cinco repositórios físicos porque a
+plataforma pública separa núcleo/API, portal e aplicativo móvel:
 
 | Pilar | Repositório físico | Responsabilidade |
 |---|---|---|
@@ -34,10 +34,13 @@ plataforma pública separa núcleo/API e portal:
 | Plataforma pública | `plataforma-inteligencia-combustiveis` | Ingestão, modelo bitemporal, resolução de entidades, geodados e API |
 | Plataforma pública | `plataforma-inteligencia-combustiveis-web` | Portal público, busca, detalhe, mapa e indexação |
 | Plataforma de gestão | `plataforma-inteligencia-combustiveis-gestao` | IAM, organizações, publicação, projeção, console e worker |
+| Plataforma pública | `plataforma-inteligencia-combustiveis-mobile` | Aplicativo do consumidor (React Native): busca, ficha, proximidade, favoritos e leitura offline |
 
 Essa separação física não cria um quarto produto. Contratos compartilhados e
-critérios de promoção precisam, porém, considerar os dois repositórios da
-plataforma pública.
+critérios de promoção precisam, porém, considerar os três repositórios da
+plataforma pública. O aplicativo é só canal de entrega: não tem regra de
+negócio própria, e o que ele precisa e a API ainda não serve está no
+[backlog do app](backlog-app-mobile.md).
 
 ## Quadro executivo
 
@@ -46,6 +49,7 @@ plataforma pública.
 | Documentação canônica | Sim | Sim — gates de contrato e léxico | Não se aplica | Uso contínuo; revisão permanece obrigatória |
 | Núcleo/API pública | Sim | Sim, com dívida localizada de branches/CI | **Sim** | Operação pública observada; não equivale a aceite institucional |
 | Portal público | Sim | Sim — testes e build | **Sim** | Operação pública observada; melhorias antigas ainda requerem triagem |
+| Aplicativo móvel | Sim — primeiro corte, em branch | Sim — typecheck, lint, testes e exportação web; ainda sem execução contra a API real | Não | **Pendente** — sem build de loja, teste em aparelho ou revisão de privacidade |
 | Gestão — G1 (tenant/IAM) | Sim | Sim | **Sim**, serviços observados | **Pendente** |
 | Gestão — G2 (publicação) | Sim | Sim | **Sim**, serviços observados | **Pendente** |
 | F1 — engenharia pré-rótulo | Sim | Sim | Sim | Validação empírica humana **pendente** |

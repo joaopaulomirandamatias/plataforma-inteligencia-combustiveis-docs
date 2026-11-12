@@ -5,7 +5,8 @@
   "prosa": "docs/agentes/politica-de-linguagem.md",
   "espelhos": [
     "plataforma-inteligencia-combustiveis:src/pic/politica.py",
-    "plataforma-inteligencia-combustiveis-web:src/lib/politica.ts"
+    "plataforma-inteligencia-combustiveis-web:src/lib/politica.ts",
+    "plataforma-inteligencia-combustiveis-mobile:src/lib/politica.ts"
   ],
 
   "detector": {
