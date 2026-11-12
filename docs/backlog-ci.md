@@ -266,9 +266,32 @@ Consertado em `pic-gestao` cortando por **nível** e não por stream: abaixo de
 `stdout` seria errado — rebaixaria falha real a `info`, trocando ruído por
 silêncio.
 
-**Mesmo defeito pendente no núcleo:** as linhas de shutdown do `pic-api`
-aparecem com `severity=error` pela mesma razão. Vale aplicar o mesmo corte
-quando o serviço voltar.
+**O mesmo defeito estava no núcleo, e foi medido lá depois da restauração.** No
+deployment `c7456adb`, 2026-11-12 04:02:11 UTC, o arranque do `pic-api` produziu
+**quatro** linhas `severity=error` — `Started server process`, `Waiting for
+application startup`, `Application startup complete` e `Uvicorn running` — e
+apenas a linha de acesso seguinte, a única sobre tráfego real, chegou como
+`info`. Cinco linhas do mesmo processo no mesmo segundo, com o veredicto
+decidido pelo descritor de arquivo.
+
+Corrigido com o mesmo corte por nível. Nesse serviço a razão de **não** apontar
+tudo para `stdout` é ainda mais concreta: o healthcheck é `/saude`, que consulta
+o banco, e `503 banco_indisponivel` durante um rollout precisa aparecer
+vermelho.
+
+### Onde cada conserto está
+
+Nenhum destes foi mesclado; são propostas abertas.
+
+| Conserto | Repositório | PR |
+|---|---|---|
+| Sonda `/saude` do portal e piso do `sharp` | `…-web` | [#41](https://github.com/joaopaulomirandamatias/plataforma-inteligencia-combustiveis-web/pull/41) |
+| Log por nível e guarda de numeração de migração | `…` (núcleo) | [#82](https://github.com/joaopaulomirandamatias/plataforma-inteligencia-combustiveis/pull/82) |
+| Log por nível | `…-gestao` | [#52](https://github.com/joaopaulomirandamatias/plataforma-inteligencia-combustiveis-gestao/pull/52) |
+
+Os dois consertos de log são o mesmo raciocínio aplicado a dois processos em
+repositórios diferentes — **não** um valor espelhado a conferir, logo não pedem
+teste de paridade entre eles.
 
 ## Healthchecks
 
