@@ -27,7 +27,7 @@ o contrato só muda pelo `openapi.yaml`, com o rito de sempre.
 
 ## 2. O que o app já faz
 
-Implementado e validado tecnicamente (typecheck, lint, 59 testes e exportação
+Implementado e validado tecnicamente (typecheck, lint, 76 testes e exportação
 web) em 2026-11-12. **Não** está em produção nem em loja, e ainda não foi
 exercitado contra a API real: o ambiente de desenvolvimento usado não alcançava
 o host de produção, então a validação usou respostas de amostra na forma do
@@ -39,6 +39,9 @@ contrato.
 | Resultados | `GET /v1/postos` |
 | Ficha do posto: resumo, qualidade, preços, cadastro, fontes | `GET /v1/postos/{posto_id}`, `GET /v1/postos/{posto_id}/contexto-regional` |
 | Perto de mim | `GET /v1/postos/mapa` (modo raio) |
+| Visão em outra data (seletor e link com `as_of`) | as mesmas da ficha, com `as_of` |
+| Compartilhar (ficha sempre atual ou link permanente do recorte) | nenhuma — monta o endereço do portal |
+| Canais oficiais e “como ler um resultado” | nenhuma — conteúdo mínimo embutido, sem citação de norma |
 | Favoritos, consultas recentes, preferências | nenhuma — guardado só no aparelho |
 | Offline | cópia da última resposta da API, por até 7 dias, com a data à vista |
 
@@ -88,12 +91,16 @@ Não dependem de backend novo:
 
 1. mapa nativo na aba “Perto de mim”, com marcador cheio para posição publicada
    pela ANP e tracejado para posição estimada pelo endereço;
-2. seletor de data para a visão histórica (`as_of`), que hoje só abre por link;
-3. folha de compartilhar com a escolha entre ficha sempre atual e link
-   permanente do recorte;
-4. identificadores de loja, ícone e tela de abertura próprios, e o primeiro
+2. identificadores de loja, ícone e tela de abertura próprios, e o primeiro
    build de desenvolvimento;
-5. conferência com leitor de tela em aparelho real.
+3. conferência com leitor de tela em aparelho real.
+
+As telas “testes que você pode pedir” e “o que conferir no local” (24 e 25 do
+mockup) **não** foram implementadas de propósito: cada frase delas cita uma
+norma, e as referências só foram conferidas por busca. Elas entram quando o
+conteúdo vier da plataforma, já revisado (APP-10). O mesmo vale para os
+contatos por estado na tela de canais oficiais, que hoje traz só o telefone da
+ANP.
 
 ## 7. Condições do gate G6 ainda abertas
 
