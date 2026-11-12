@@ -36,7 +36,7 @@ Pela mesma razão não se apagam serviços, variáveis nem domínios, e **nunca 
 3. **Bancos por último** — `Postgres` e `pic-gestao-projection-db`.
 4. **Confirme pelo resultado, não pelo comando:** zero serviços rodando e os endereços públicos respondendo **404**. O 404 é o resultado esperado, não sintoma: significa que não há roteamento para coisa alguma. Um 502 no lugar dele diria que ainda existe algo de pé para o roteador tentar alcançar.
 
-## Religar — ordem inversa, e as duas armadilhas
+## Religar — ordem inversa, e as três armadilhas
 
 A ordem é `Postgres` → `pic-gestao-projection-db` → aplicações (`pic-api`, `pic-web`, `pic-worker`). O banco vem primeiro porque o healthcheck da API é `/saude`, que **consulta o banco**: subir a API antes derruba o próprio rollout com 503 `banco_indisponivel` e queima as três tentativas da política de restart antes de o banco existir. O rollout falha por ordem, e o diagnóstico aponta para o lugar errado.
 
@@ -54,6 +54,49 @@ Quem religa pelo status volta o binário errado — e o status novo dirá `SUCCE
 - **Depois de religar, verifique comportamento, não status.** Status diz que subiu; não diz *o quê* subiu.
 
 E a regra permanente do pipeline continua valendo no religar: produção acompanha a branch `deploy`, nunca `main` ([backlog de CI](../../backlog-ci.md)).
+
+### Armadilha 3 — serviço sem branch na fonte é pulado em silêncio
+
+Esta é a que custou mais caro, porque não produz erro nenhum: produz ausência.
+
+Um serviço ligado ao GitHub guarda `source.repo` **e** `source.branch`. Sem a
+branch, a Railway não tem commit de onde construir — então o religar
+simplesmente **não cria deployment** para aquele serviço. Nenhuma falha, nenhum
+`FAILED`, nenhuma linha de log: o serviço fica de fora da lista do que subiu, e
+quem confere serviço por serviço no painel vê onze verdes e não percebe o
+décimo-segundo que não está lá.
+
+Medido em 2026-11-12, sobre o religar de 2026-11-11:
+
+| Serviço | `source` | Religar de 2026-11-11 05:03 |
+|---|---|---|
+| `pic-worker` | `{repo, branch: "deploy"}` | deployment `SUCCESS` do commit `9f8ef76` |
+| `pic-api` | `{repo}` — **sem `branch`** | **nenhum deployment criado** |
+
+O desligamento de 2026-11-08 04:17:33 foi limpo e completo — `Stopping
+Container`, shutdown ordenado do Uvicorn, sem crash, em todos os serviços. O
+religar de 2026-11-11 devolveu onze deles. O `pic-api` ficou fora do ar por
+quatro dias sem que nada no ambiente apontasse para ele, porque **o sintoma
+estava no portal e não na API**: o portal continuou respondendo `200`, com a
+busca, a ficha e o mapa devolvendo "Consulta indisponível no momento".
+
+Antes de religar, confira a fonte de cada serviço:
+
+```
+describe-service → config.source   # precisa ter repo E branch
+```
+
+Serviço sem `branch` não se resolve com `redeploy`, em CLI nem em MCP: não há
+build a reaproveitar e não há commit a construir. Reconecte a fonte à branch
+`deploy` — e só então o deployment nasce.
+
+**Confirmado na prática em 2026-11-12.** Reconectar a fonte do `pic-api` a
+`{repo, branch: "deploy"}` criou o deployment no mesmo instante, do commit
+`aec1b90`, e `/saude` respondeu 200 `pronto` **31 segundos** depois do
+`SUCCESS`. Nenhum serviço foi reprovisionado, nenhum volume tocado, nenhuma
+variável alterada — o que faltava era um campo. Vale medir o contraste: a mesma
+indisponibilidade durou quatro dias porque o diagnóstico apontava para
+reconstrução, não para a fonte.
 
 ## Provar que voltou — por comportamento
 
@@ -139,9 +182,32 @@ runtime Railway e um ciclo completo sem erros**. DNS voltar a resolver, o
 serviço continuar em `SUCCESS` ou o one-shot ANP concluir, isoladamente, não
 abrem esse gate.
 
+Antes de retirar `cron=null`, anexe ao registro operacional as evidências
+mínimas abaixo. Se qualquer item faltar, a pausa continua:
+
+1. `main == deploy`, com o SHA exato registrado, e deployment do worker
+   construído desse mesmo SHA;
+2. volume `/data` montado, Migrator concluído e contagens/frescor por fonte
+   capturados **antes** da execução;
+3. resolução DNS, catálogo e recurso oficial da F06 alcançáveis — sem promover
+   `consumidor.gov.br` ou outra fonte ainda não validada a substituta;
+4. one-shot `/railway.worker-f06.json` no runtime Railway encerrado com exit
+   `0`, com resumo por fonte, identificador da carga e logs sem
+   `quarentena`, `sem_deposito`, `corrompido`, status desconhecido ou erro
+   estruturado;
+5. contagens/frescor **depois** da execução e artefato bruto preservado com
+   localizador e hash, explicando delta zero quando não houver publicação nova;
+6. ciclo controlado completo, pelo mesmo artefato do worker, encerrado sem
+   erros, com ids dos deployments/execuções, horário e operador registrados.
+
+Somente então restaure `0 4 * * *` e confirme como pós-condição o cron, restart
+`NEVER` e volume `/data`. No primeiro disparo agendado, repita a leitura de
+resumo, logs, contagens e frescor; divergência recoloca `cron=null` e reabre a
+investigação.
+
 ## Se algo não voltar
 
-1. **A MCP também recusa religar o deployment** → o build se perdeu. Aí sim vale um deploy novo, do SHA da branch `deploy`, passando pelo gate. Nunca apontando produção para `main` para "destravar".
+1. **A MCP também recusa religar o deployment** → antes de concluir que o build se perdeu, leia `config.source` do serviço (armadilha 3). Serviço **sem `branch`** não perdeu build nenhum: nunca houve o que construir, e a correção é reconectar a fonte à branch `deploy`. Se a fonte estiver íntegra e o build mesmo assim se perdeu — `regions: []` e `snapshotId: null` no deployment — aí sim vale um deploy novo, do SHA da branch `deploy`, passando pelo gate. Nunca apontando produção para `main` para "destravar".
 2. **API ou worker sobem e caem em laço** → leia o log de arranque antes de qualquer hipótese. O contêiner imprime o modo e a **origem** dele (`[iniciar] modo: agenda (de $PIC_MODO)`); worker que subiu como `servir` é uma segunda API silenciosa, e o sintoma seria a F01 parar de ingerir. URL de banco é **por serviço**: worker que recebeu o papel de leitura recusa subir e diz qual papel recebeu e qual variável corrigir.
 3. **Nada disso resolve** → pare e escale. A linha que não se cruza sozinho: não destruir volume e não reprovisionar serviço "para começar limpo". Reprovisionar perde variável, domínio, cron e a ligação de volume, e troca um problema de dez minutos por um dia de reconstrução.
 
@@ -161,6 +227,8 @@ abrem esse gate.
 - **Apagar volume porque "o serviço está parado".** É a única ação desta página sem volta.
 - **Religar pelo que o `get-status` chama de último deployment.** Confira sempre por `list-deployments`.
 - **Concluir de um `SUCCESS` que a plataforma voltou.** Ele prova que algo subiu.
+- **Conferir só o que subiu.** Onze serviços verdes não dizem quantos deveriam ser doze; compare contra a lista de serviços do ambiente, não contra a lista de deployments do religar.
+- **Ler o portal respondendo `200` como API no ar.** O portal degrada com elegância e segue servindo; a função central é que para.
 - **Subir aplicações antes dos bancos** e depois diagnosticar o healthcheck.
 - **Apontar produção para `main`** para acelerar o religar.
 - **Desligar atravessando a janela do dump da Receita** sem uma decisão registrada de que o mês foi abandonado.

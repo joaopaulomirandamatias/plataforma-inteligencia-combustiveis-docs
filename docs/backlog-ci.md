@@ -208,12 +208,138 @@ Frontend:
 Assim testes, README e alterações apenas no pipeline continuam sendo validados
 pelo Woodpecker sem gastar rollout de produção quando o executável é idêntico.
 
+## Dois achados de 2026-11-12
+
+### O piso de dependência do portal vivia em dois lugares, e eles divergiram
+
+O pnpm 11 **deixou de ler** o campo `pnpm` do `package.json`. Enquanto a CI usa
+pnpm 9 e o ambiente local já está em 12.x, a mesma política de `overrides`
+precisa existir nos dois lugares — e ela divergiu exatamente no piso que mais
+importava:
+
+| Onde | `sharp` | Quem lê |
+|---|---|---|
+| `package.json` → `pnpm.overrides` | `>=0.35.5` | pnpm 9 (a CI) |
+| `pnpm-workspace.yaml` → `overrides` | `>=0.35.0` *(corrigido)* | pnpm ≥ 11 |
+| `pnpm-lock.yaml` | `>=0.35.5` | escrito pelo pnpm 9 |
+
+O piso subiu para `.5` em 2026-10-11 porque a faixa aceita pelo Next ainda
+admitia versão vulnerável. Quem instalasse com pnpm moderno recebia de volta o
+que o bump existia para excluir — **sem sintoma algum**, porque o lockfile foi
+escrito pelo pnpm 9 e o `pnpm audit` lê o que já foi resolvido, não o que o
+próximo install resolveria. Auditoria verde sobre árvore certa, política vigente
+frouxa.
+
+Corrigido alinhando o workspace para `>=0.35.5` — nunca para baixo, que
+desfaria uma decisão de segurança com motivo registrado. A concordância deixou
+de ser disciplina: `src/testes/overrides.test.ts` reprova quando os dois blocos
+divergem, e sai do repositório junto com o bloco do `package.json` quando o
+runner subir para pnpm ≥ 11.
+
+**Pendência conhecida:** o `pnpm` local recusa operar — `node_modules` fora de
+sincronia com o lockfile, e instalar removeria `pnpm.overrides` dele. Os
+comandos de gate do README do portal (`pnpm exec tsc`, `pnpm test`) **não rodam
+hoje** sem antes decidir o install; os gates foram executados pelos binários já
+presentes em `node_modules`. Decidir o install é trabalho próprio, porque
+reescreve o lockfile.
+
+### Severidade de log derivada do stream contava arranque saudável como erro
+
+Na pilha de gestão, cada deploy produzia três linhas de **erro** que não eram
+erro:
+
+    severity=error  INFO:     Started server process [1]
+    severity=error  INFO:     Application startup complete.
+    severity=error  INFO:     Uvicorn running on http://0.0.0.0:8000
+
+A Railway deriva severidade do **stream**, e o `LOGGING_CONFIG` padrão do
+Uvicorn manda o handler `default` para `stderr`; o `access`, em `stdout`,
+chegava como `info`. Mesmo processo, dois veredictos, decididos pelo descritor
+de arquivo.
+
+Isso corrompe a contagem de avisos do ambiente e ensina o operador a ignorar a
+lista — a mesma lição que levou a tratar a indisponibilidade da F06 como fonte
+indisponível em vez de erro de execução.
+
+Consertado em `pic-gestao` cortando por **nível** e não por stream: abaixo de
+`WARNING` sai por `stdout`, `WARNING` e acima por `stderr`. Apontar tudo para
+`stdout` seria errado — rebaixaria falha real a `info`, trocando ruído por
+silêncio.
+
+**O mesmo defeito estava no núcleo, e foi medido lá depois da restauração.** No
+deployment `c7456adb`, 2026-11-12 04:02:11 UTC, o arranque do `pic-api` produziu
+**quatro** linhas `severity=error` — `Started server process`, `Waiting for
+application startup`, `Application startup complete` e `Uvicorn running` — e
+apenas a linha de acesso seguinte, a única sobre tráfego real, chegou como
+`info`. Cinco linhas do mesmo processo no mesmo segundo, com o veredicto
+decidido pelo descritor de arquivo.
+
+Corrigido com o mesmo corte por nível. Nesse serviço a razão de **não** apontar
+tudo para `stdout` é ainda mais concreta: o healthcheck é `/saude`, que consulta
+o banco, e `503 banco_indisponivel` durante um rollout precisa aparecer
+vermelho.
+
+### Onde cada conserto está
+
+Nenhum destes foi mesclado; são propostas abertas.
+
+| Conserto | Repositório | PR |
+|---|---|---|
+| Sonda `/saude` do portal e piso do `sharp` | `…-web` | [#41](https://github.com/joaopaulomirandamatias/plataforma-inteligencia-combustiveis-web/pull/41) |
+| Log por nível e guarda de numeração de migração | `…` (núcleo) | [#82](https://github.com/joaopaulomirandamatias/plataforma-inteligencia-combustiveis/pull/82) |
+| Log por nível | `…-gestao` | [#52](https://github.com/joaopaulomirandamatias/plataforma-inteligencia-combustiveis-gestao/pull/52) |
+
+Os dois consertos de log são o mesmo raciocínio aplicado a dois processos em
+repositórios diferentes — **não** um valor espelhado a conferir, logo não pedem
+teste de paridade entre eles.
+
 ## Healthchecks
 
 - `pic-api`: `/saude` deve responder 200; o endpoint inclui a dependência de banco necessária ao runtime.
 - `pic-web`: `/` deve ficar pronto antes do rollout ser considerado saudável.
 
 “Container iniciou” não é mais suficiente para considerar API/web aptos a servir.
+
+**Lacuna fechada em 2026-11-12.** O incidente de 2026-11-08 a provou: o
+healthcheck do portal é `/`, servido sem consultar a API, então o portal
+respondeu `200` durante quatro dias em que a busca, a ficha e o mapa devolviam
+"Consulta indisponível no momento". Qualquer monitor apontado para o portal viu
+verde. O que custou quatro dias não foi consertar — foi perceber.
+
+Nasce `GET /saude` **no portal** (`src/app/saude/route.ts`), para
+**monitoração**, não para rollout:
+
+| Estado | HTTP | Corpo |
+|---|---:|---|
+| API respondeu 200 | 200 | `{"portal":"ok","api":"ok"}` |
+| API respondeu que não pode servir | 503 | `{"portal":"ok","api":"degradada","codigo":"…"}` |
+| API não respondeu | 503 | `{"portal":"ok","api":"inalcancavel"}` |
+| `PIC_API_URL` ausente | 503 | `{"portal":"ok","api":"nao_configurada"}` |
+
+Quatro decisões que valem registro:
+
+1. **O healthcheck de deploy do portal continua sendo `/`**, e deve continuar.
+   Amarrar o rollout do portal à API acopla os dois serviços, e um portal que se
+   recusa a subir enquanto a API está fora remove a única coisa que ainda
+   funcionava: a página que explica o que o portal é. Esta sonda é para o
+   monitor, não para o orquestrador.
+2. **`degradada` também é 503.** Monitor olha o código antes do corpo, e muitos
+   só olham o código; API que responde mas não serve deixa a consulta
+   igualmente quebrada para quem visita. A distinção útil — procurar o banco ou
+   procurar o serviço — vive no corpo.
+3. **O corpo é pobre de propósito.** Sonda de saúde é o endereço mais exposto e
+   menos autenticado do serviço; mensagem de exceção de rede carrega host, porta
+   e às vezes DSN. Sai `codigo`, vocabulário fechado do contrato, e nunca a
+   mensagem — a mesma razão pela qual a API pública mantém `detalhe` fora do
+   `/saude`.
+4. **`no-store` nos dois sentidos**, na chamada à API e na resposta ao monitor.
+   Sonda servida de cache relata o passado: durante a queda ela diria `ok` por
+   mais um ciclo de revalidação, que é precisamente o atraso que um monitor não
+   pode ter.
+
+Doze testes, portantes nos dois sentidos: uma sonda que devolvesse `200` sempre
+— o defeito original reimplementado com endereço novo — reprova em três; uma que
+vazasse a mensagem da exceção reprova em dois.
 
 ## Regra para mudanças futuras
 
