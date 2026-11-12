@@ -44,26 +44,25 @@ plataforma pública.
 | Frente | Implementado | Validado tecnicamente | Ativo em produção | Aceito operacionalmente |
 |---|---|---|---|---|
 | Documentação canônica | Sim | Sim — gates de contrato e léxico | Não se aplica | Uso contínuo; revisão permanece obrigatória |
-| Núcleo/API pública | Sim | Sim, com dívida localizada de branches/CI | **Não — fora do ar desde 2026-11-08** (ver incidente abaixo) | Suspenso enquanto a API não responde |
-| Portal público | Sim | Sim — testes e build | **Parcial** — processo no ar, consulta degradada por depender da API | Suspenso enquanto a consulta não volta |
+| Núcleo/API pública | Sim | Sim, com dívida localizada de branches/CI | **Sim** — restaurada em 2026-11-12, verificada por comportamento | Operação pública observada; não equivale a aceite institucional |
+| Portal público | Sim | Sim — testes e build | **Sim** — consulta restabelecida em 2026-11-12 | Operação pública observada; melhorias antigas ainda requerem triagem |
 | Gestão — G1 (tenant/IAM) | Sim | Sim | **Sim**, serviços observados | **Pendente** |
 | Gestão — G2 (publicação) | Sim | Sim | **Sim**, serviços observados | **Pendente** |
 | F1 — engenharia pré-rótulo | Sim | Sim | Sim | Validação empírica humana **pendente** |
 | F09 — Inmetro/Ipem | Mapa e pedido documentados | Fontes públicas avaliadas | Não | Convênio e dados por bico **pendentes** |
 
-## Incidente aberto — API pública fora do ar desde 2026-11-08
+## Incidente encerrado — API pública fora do ar de 2026-11-08 a 2026-11-12
 
-**Este incidente tem precedência sobre o resto deste documento.** As seções
-seguintes descrevem o estado anterior a ele e permanecem como registro datado;
-onde disserem que a API pública está ativa em produção, leia-se *estava*, até
-2026-11-08.
+**Encerrado em 2026-11-12 04:02 UTC**, com verificação por comportamento (a
+bateria de sondas está ao fim desta seção). O registro fica porque a causa raiz
+é reaproveitável e o modo de falha era silencioso.
 
-### O que está acontecendo
+### O que aconteceu
 
-`pic-api` não tem deployment vivo. O portal `pic-web` responde `HTTP 200`, mas
-busca, ficha e mapa devolvem "Consulta indisponível no momento", porque
-dependem da API. Para quem visita, a função central do produto público está
-quebrada.
+`pic-api` ficou sem deployment vivo por quatro dias. O portal `pic-web`
+respondia `HTTP 200`, mas busca, ficha e mapa devolviam "Consulta indisponível
+no momento", porque dependem da API. Para quem visitava, a função central do
+produto público não funcionava.
 
 ### Cronologia, medida em 2026-11-12
 
@@ -72,7 +71,9 @@ quebrada.
 | 2026-11-08 04:17:33 | Desligamento deliberado de **todo** o ambiente — `Stopping Container` e shutdown ordenado do Uvicorn, sem crash |
 | 2026-11-11 05:03–05:06 | Religar: **onze** serviços voltam `SUCCESS` a partir do GitHub |
 | 2026-11-11 05:03 | `pic-api` **não recebe deployment algum** — nenhuma falha, nenhum log |
-| 2026-11-12 | Incidente identificado; API segue fora do ar, portal degradado |
+| 2026-11-12 03:50 | Incidente identificado; API fora do ar, portal degradado |
+| 2026-11-12 04:01:35 | Fonte reconectada à branch `deploy`; deployment `c7456adb` nasce do commit `aec1b90` |
+| 2026-11-12 04:02 | Deployment `SUCCESS`; `/saude` responde 200 `pronto` 31 s depois |
 
 ### Causa raiz
 
@@ -89,10 +90,12 @@ build a reaproveitar nem commit a construir. A armadilha está descrita em
 [Desligar e religar a plataforma](operacao/runbooks/desligar-e-religar-a-plataforma.md),
 armadilha 3.
 
-### Correção pendente de autorização
+### A correção aplicada
 
-Reconectar a fonte do `pic-api` à branch `deploy` e acompanhar o rollout.
-Alvo apurado em 2026-11-12: `main == deploy == aec1b90`. O diff entre o commit
+Reconectar a fonte do `pic-api` à branch `deploy` — e só isso. Nenhum serviço
+foi reprovisionado, nenhum volume tocado, nenhuma variável alterada; o
+deployment nasceu no mesmo instante em que a branch passou a existir na fonte.
+Alvo: `main == deploy == aec1b90`. O diff entre o commit
 que o worker roda em produção (`9f8ef76`) e `aec1b90` são quatro commits que
 **não tocam o caminho servido pela API** — mexem em `cli_er`, pipeline de ER,
 população de experimento e no preflight da F02 — e acrescentam a migração
@@ -103,6 +106,30 @@ API; a migração pendente é da F02 e precisa de passagem própria pelo Migrato
 leitura do banco exige a rede privada e o caminho documentado passa pelo
 `pic-api`, que está fora do ar. Não afirmar o que já foi aplicado sem essa
 leitura.
+
+### Verificação de 2026-11-12, por comportamento
+
+Cada sonda é a do [runbook pós-deploy](operacao/runbooks/verificar-apos-deploy.md),
+com fetch único gravado em arquivo:
+
+| Sonda | Resultado | O que prova |
+|---|---|---|
+| `GET /saude` | 200, `estado: pronto` | Processo vivo **e** banco alcançável pelo papel de leitura |
+| `GET /v1/postos/mapa?…&limit=500` | **500 itens = 500 `posto_id` distintos, 0 repetidos**, `truncado: true` | Prova de binário: o colapso por posto do GEO-06 está ativo |
+| `GET /v1/postos/{id}/contexto-regional` | 200 | A rota mais nova da ficha está no ar |
+| `robots.txt` e `sitemap.xml` do portal | 200, **28 fatias** | O portal subiu com `PIC_API_URL` |
+| Ficha renderizada | **0** `sha256`, **0** `localizador`, **0** `.csv` | A barreira de saída do [ADR-008](arquitetura/adr/adr-008-guardiao-barreira-de-saida.md) voltou junto |
+| Consulta pública | funcionando | A função central do produto voltou |
+
+Contagens no retorno: cadastro 48.742, PMQC 193.043, preço 150.354,
+atendimento 0 — a F06 segue `indisponível`, como esperado.
+
+**O que esta verificação NÃO prova:** que a ingestão esteja corrente. O cron do
+worker continua `null` pela pausa de 2026-10-19, e por isso as cargas param em
+2026-10-20 (F01, F02, GEO-ANP) e 2026-10-03 (F03). A API serve o snapshot
+íntegro de 20/10; retomar a ingestão é o gate da pausa, com as seis evidências
+mínimas do [runbook de religar](operacao/runbooks/desligar-e-religar-a-plataforma.md),
+e não foi tocado aqui.
 
 ### Nota operacional — a MCP não lista este projeto
 
@@ -116,9 +143,10 @@ de acesso — e concluir o contrário levaria a recriar projeto já existente.
 
 ## Evidência de produção em 2026-10-11
 
-> **Registro datado, superado em parte.** O que esta seção descreve foi medido em
-> 2026-10-11 e valia naquela data. A API pública não está mais neste estado —
-> veja o incidente acima.
+> **Registro datado.** O que esta seção descreve foi medido em 2026-10-11. Para o
+> estado corrente da API pública, veja a verificação de 2026-11-12 no incidente
+> acima; as contagens mudaram, e as cargas param em 2026-10-20 pela pausa do
+> cron.
 
 A verificação coordenada dos repositórios e do ambiente de produção encontrou:
 

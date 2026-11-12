@@ -90,6 +90,14 @@ Serviço sem `branch` não se resolve com `redeploy`, em CLI nem em MCP: não h�
 build a reaproveitar e não há commit a construir. Reconecte a fonte à branch
 `deploy` — e só então o deployment nasce.
 
+**Confirmado na prática em 2026-11-12.** Reconectar a fonte do `pic-api` a
+`{repo, branch: "deploy"}` criou o deployment no mesmo instante, do commit
+`aec1b90`, e `/saude` respondeu 200 `pronto` **31 segundos** depois do
+`SUCCESS`. Nenhum serviço foi reprovisionado, nenhum volume tocado, nenhuma
+variável alterada — o que faltava era um campo. Vale medir o contraste: a mesma
+indisponibilidade durou quatro dias porque o diagnóstico apontava para
+reconstrução, não para a fonte.
+
 ## Provar que voltou — por comportamento
 
 Cada sonda abaixo existe porque prova uma coisa que as outras não provam. Use fetch único gravado em arquivo e conte com `grep -o … | wc -l`, pelas razões do [runbook do deploy em transição](verificar-apos-deploy.md).
