@@ -51,6 +51,23 @@ plataforma pública.
 | F1 — engenharia pré-rótulo | Sim | Sim | Sim | Validação empírica humana **pendente** |
 | F09 — Inmetro/Ipem | Mapa e pedido documentados | Fontes públicas avaliadas | Não | Convênio e dados por bico **pendentes** |
 
+## Nova frente de produto — PIC Verifica (planejada em 2026-11-12)
+
+| Frente | Implementado | Validado tecnicamente | Ativo em produção | Aceito operacionalmente |
+| --- | --- | --- | --- | --- |
+| PIC Verifica — app de consulta/observação Bluetooth e relatos | **Não** | **Não** | **Não** | **Não** |
+| Módulo privado de recepção e triagem de manifestações | **Não** | **Não** | **Não** | **Não** |
+
+O aplicativo já se relacionava ao Gate G6 do produto de gestão; agora está **incluído como escopo futuro** com consulta, verificação de abastecimentos em bombas compatíveis e envio de relatos de possíveis irregularidades. A fila privada será visível **apenas a perfis explicitamente habilitados**, com finalidade e auditoria. A interface Bluetooth e o fluxo de denúncias não estão implementados, homologados nem operando. **Relato não é fato oficial ou fraude comprovada.**
+
+Especificação: [PIC Verifica](produto/pic-verifica-app.md), [ADR-012 proposto](arquitetura/adr/adr-012-app-bluetooth-e-manifestacoes.md) e [contratos conceituais](arquitetura/contrato-evento-bomba-e-relato.md). Não confundir este adendo de roadmap com os números operacionais observados em outubro.
+
+## Documentação adicional proposta em 2026-11-12 — sem promoção de status
+
+Foram documentados novos requisitos futuros de **segurança do app e do recebimento de denúncias**, priorização de **passaporte digital de bomba, comprovante, frotas, dossiês e reconciliação**, e uma **revisão qualitativa de investimento**. Ver [segurança](seguranca/modelo-ameacas-pic-verifica-2026.md), [carteira de oportunidades](produto/oportunidades-priorizadas-2026.md) e [adendo financeiro](planejamento/adendo-investimento-pic-verifica-2026.md).
+
+**Nenhuma dessas novas capacidades foi implementada, testada, implantada ou aceita nesta atualização documental.** O estado de produção e os números históricos abaixo permanecem inalterados. Os PDFs de setembro são retratos de acesso e preços datados; não deduzir atualizações operacionais a partir das propostas.
+
 ## Evidência de produção em 2026-10-11
 
 A verificação coordenada dos repositórios e do ambiente de produção encontrou:

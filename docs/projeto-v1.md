@@ -584,3 +584,21 @@ Para fechar na reunião:
 - [Plano Diretor de Documentação](arquitetura/plano-diretor.md) — C4, DDD, ADRs, segurança, APIs e árvore de docs
 - [Glossário](onboarding/glossario.md) · [Catálogo de Fontes](dados/catalogo-fontes.md)
 - Nota de contexto (app adiado) e protocolo de pesquisa das cinco camadas — documentos internos do projeto, não publicados neste repositório.
+
+---
+
+## Adendo de evolução de produto — PIC Verifica (12/11/2026)
+
+O aplicativo **PIC Verifica** passa a integrar o **roadmap planejado** do ecossistema como extensão do aplicativo já previsto em PIC Gestão. Não altera o escopo executável da v1, os contratos da API pública nem o catálogo F01–F11. Três funções são planejadas: **consulta pública de postos**, **consulta/validação digital de registros de bombas compatíveis** (Bluetooth metrológico apenas autorizado; dados contínuos de pista só por gateway/API contratada) e **envio de relatos de possíveis irregularidades com anexos opcionais e protocolo de acompanhamento**.
+
+Relatos não se tornam fatos oficiais nem prova de fraude; seguem para área privada com acesso limitado a analistas/supervisores habilitados por finalidade, escopo e auditoria. Encaminhamento ao órgão competente depende de acordo e decisão humana. Os dados pessoais do reportante e evidências são segregados do núcleo público. O app não acessa diretamente bancos privados.
+
+Leia [requisitos de produto](produto/pic-verifica-app.md), [contrato de evidências e manifestações](arquitetura/contrato-evento-bomba-e-relato.md), [ADR-012 (proposto)](arquitetura/adr/adr-012-app-bluetooth-e-manifestacoes.md) e [status canônico](status-projeto.md).
+
+---
+
+## Adendo de segurança, oportunidades e investimento (12/11/2026)
+
+Conforme análise do **Mapa de integrações — PIC (2026-09-28)** e do **Levantamento de investimento — PIC (14/09/2026)**, o plano de evolução do produto passa a registrar uma carteira de oportunidades, as duas correções científicas de inferência sobre capacidade de tanque/NFC-e e necessidades de segurança para o app e canal de manifestações. **Sem alteração do escopo da v1 executável, sem novos conectores implantados e sem custo incremental fechado.**
+
+Documentos associados: [carteira de recursos](produto/oportunidades-priorizadas-2026.md), [modelo de ameaças](seguranca/modelo-ameacas-pic-verifica-2026.md), [adendo financeiro](planejamento/adendo-investimento-pic-verifica-2026.md), [PIC Verifica](produto/pic-verifica-app.md). Tratar as projeções financeiras do levantamento como estimativas históricas e revalidar cenário C quanto a QA/segurança dedicados.

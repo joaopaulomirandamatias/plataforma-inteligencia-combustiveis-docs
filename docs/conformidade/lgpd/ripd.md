@@ -71,3 +71,29 @@ Referência cruzada, sem duplicação: criptografia em trânsito/repouso, segreg
 6. `[PENDENTE]` Canal de titular e fluxo de resposta
 
 Enquanto a lista não zera, o conector F05 pode **arquivar** os dumps mensais (preservação sem tratamento analítico de PF — a janela de captura é irrecuperável) e o grafo opera apenas com T1/T2 (empresas), sem dimensão de pessoa física.
+
+## Extensão futura (12/11/2026) — manifestações enviadas pelo PIC Verifica
+
+> **ADENDO DE RISCO, NÃO APROVAÇÃO DE TRATAMENTO.** O RIPD presente trata da PIC v1 e não autoriza ainda o recebimento de denúncias diretamente do público. O [PIC Verifica](../../produto/pic-verifica-app.md) inclui uma futura função de relato de possível irregularidade, com protocolo de acompanhamento, anexos e fila privada para analistas autorizados. O serviço não foi implantado. **Antes de qualquer piloto real** o controlador, o encarregado, o jurídico e a instituição parceira devem atualizar/validar este RIPD, a base legal e os instrumentos pertinentes.
+
+### Tratamento T7 proposto (fora da v1 corrente)
+
+| Dimensão | Proposta pendente de análise |
+| --- | --- |
+| Finalidade | Receber, registrar, triar e eventualmente encaminhar relatos de cidadãos sobre eventuais irregularidades de abastecimento |
+| Titulares | Reportantes, representantes do posto, pessoas incidentalmente retratadas em anexos, analistas e demais envolvidos |
+| Dados | Categoria, data, descrição, posto associado, evidências (foto/comprovante/pacote de bomba, quando houver), contato **opcional e separado**, eventos de auditoria |
+| Sensibilidade | Possível identificação de pessoas, placas, áudio/imagens e informações de consumo; risco de exposição de denunciante e acusação indevida |
+| Compartilhamento | **Nenhum por padrão**; somente autoridade/órgão competente com escopo, finalidade, acordo e justificativa humana |
+| Base legal | **[PENDENTE — jurídico e encarregado]**; não pressupor consentimento como fundamento único ou suficiente |
+| Retenção, exclusão e direitos | **[PENDENTE — política por classe de dado e estágio do caso]**; minimização, expurgo seguro e legal hold quando cabível |
+| Segurança | Recepção segregada, anexos em quarentena, criptografia, RBAC+ABAC, acesso com finalidade, auditoria **de leitura** e exportações, sem publicação |
+| Atendimento | Prazos, possibilidade de relato anônimo, direito de acompanhamento e protocolo seguro **a definir institucionalmente** |
+
+**Riscos adicionais:** denúncia falsa/maliciosa, spam, anexos executáveis, exposição de identidade ou localização, associação de posto incorreto, vazamento por protocolo enumerável, inferência por mensagens de estado, acessos indevidos cross-tenant, inclusão acidental em RAG/ML/portal ou transferência indevida a posto. **Mitigações propostas:** antimalware, quarentena, limites por arquivo/requisição, antiabuso, amostra de testes com atores distintos, logs sem conteúdo, segregação de reportante e anexos, lista de acesso de menor privilégio e revisão independente de segurança/privacidade.
+
+**Proibições:** manifestação não é registro oficial de infração, não alimenta `score`, não é exibida em ficha pública, não abre auto ou sanção automaticamente e não pode ser encaminhada ao posto sem análise específica do devido processo e da segurança do denunciante.
+
+## Relação com o modelo de ameaças do PIC Verifica (2026-11-12)
+
+O [modelo de ameaças](../../seguranca/modelo-ameacas-pic-verifica-2026.md) acrescenta prioridades de autorização por caso, proteção de contatos e anexos, auditoria de leitura, antiabuso, retenção e resposta a incidentes. Sua existência **não conclui** o RIPD: controlador, base legal e riscos residuais do tratamento T7 de manifestações permanecem sujeitos a decisão do jurídico/encarregado **antes de qualquer coleta real**.
